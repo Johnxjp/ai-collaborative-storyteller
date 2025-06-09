@@ -41,7 +41,6 @@ export default function StoryInput({ value, onChange, onSubmit, disabled }: Stor
             <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
                 <div className="flex flex-col space-y-2">
                     <div className="flex justify-between items-center text-sm text-gray-600">
-                        <span>Add to your story...</span>
                         <span className={charCount > MAX_CHARS * 0.9 ? 'text-red-500' : ''}>
                             {charCount}/{MAX_CHARS}
                         </span>

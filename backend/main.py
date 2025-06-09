@@ -5,9 +5,11 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from openai import OpenAI
 from pydantic import BaseModel
-import openai
 
+
+from prompts import system_prompt, user_prompt_template
 
 # Load environment variables
 load_dotenv()
@@ -23,49 +25,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize OpenAI client
-import openai
-
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 class StoryRequest(BaseModel):
-    entire_story: str
-    user_input: str
+    story: str
 
 
 @app.post("/generate-story")
 async def generate_story(request: StoryRequest):
     try:
         # Construct the prompt
-        system_prompt = """You are a creative storytelling assistant. Your job is to continue a collaborative story naturally and engagingly. Keep your contributions concise but meaningful, around 1-3 sentences. Match the tone and style of the existing story. Be creative but maintain narrative coherence."""
-
-        user_prompt = f"""Story so far: {request.entire_story}
-
-Latest user addition: {request.user_input}
-
-Continue the story naturally from where it left off."""
+        user_prompt = user_prompt_template.format(story=request.story.strip())
 
         # Create OpenAI streaming response
-        stream = client.chat.completions.create(
+        stream = client.responses.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+            instructions=system_prompt,
+            input=user_prompt,
             stream=True,
-            max_tokens=150,
+            max_output_tokens=150,
             temperature=0.8,
         )
 
         async def generate():
-            for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
-                    content = chunk.choices[0].delta.content
-                    # Send as Server-Sent Events format
+            for event in stream:
+                if event.type == "response.output_text.delta":
+                    content = event.delta
                     yield f"data: {json.dumps({'content': content})}\n\n"
 
-            # Send end signal
             yield f"data: {json.dumps({'done': True})}\n\n"
 
         return StreamingResponse(

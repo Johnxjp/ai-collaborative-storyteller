@@ -3,20 +3,19 @@
 import { useCallback, useRef } from 'react';
 
 export const useStoryAPI = () => {
-  const lastRequestRef = useRef<{story: string, input: string} | null>(null);
+  const lastRequestRef = useRef<{ story: string } | null>(null);
 
-  const submitStory = useCallback(async (entireStory: string, userInput: string) => {
+  const submitStory = useCallback(async (entireStory: string) => {
     // Store for potential retry
-    lastRequestRef.current = { story: entireStory, input: userInput };
-    
+    lastRequestRef.current = { story: entireStory };
+
     const response = await fetch('http://localhost:8000/generate-story', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        entire_story: entireStory,
-        user_input: userInput
+        story: entireStory
       }),
     });
 
@@ -40,7 +39,7 @@ export const useStoryAPI = () => {
 
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
@@ -49,8 +48,8 @@ export const useStoryAPI = () => {
                 aiResponse += data.content;
               }
               if (data.done) {
-                const fullStory = entireStory + ' ' + userInput + ' ' + aiResponse.trim();
-                return { fullStory: fullStory.trim() };
+                const nextStoryPart = aiResponse.trim();
+                return { nextStoryPart: nextStoryPart };
               }
             } catch {
               // Skip malformed JSON
@@ -63,16 +62,16 @@ export const useStoryAPI = () => {
     }
 
     // Fallback if no done signal received
-    const fullStory = entireStory + ' ' + userInput + ' ' + aiResponse.trim();
-    return { fullStory: fullStory.trim() };
+    const nextStoryPart = aiResponse.trim();
+    return { nextStoryPart: nextStoryPart };
   }, []);
 
   const retryLastRequest = useCallback(async () => {
     if (!lastRequestRef.current) {
       throw new Error('No previous request to retry');
     }
-    
-    return await submitStory(lastRequestRef.current.story, lastRequestRef.current.input);
+
+    return await submitStory(lastRequestRef.current.story);
   }, [submitStory]);
 
   return { submitStory, retryLastRequest };

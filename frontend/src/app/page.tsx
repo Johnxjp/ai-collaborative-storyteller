@@ -11,7 +11,7 @@ interface AppState {
   story: string;
   userInput: string;
   isLoading: boolean;
-  error: string | null;
+  errorMessage: string | null;
   turnCount: number;
 }
 
@@ -20,7 +20,7 @@ export default function Home() {
     story: '',
     userInput: '',
     isLoading: false,
-    error: null,
+    errorMessage: null,
     turnCount: 0
   });
 
@@ -29,39 +29,45 @@ export default function Home() {
   const handleSubmit = async (input: string) => {
     if (input.trim() === '') return;
 
+    const storyWithUserInput = state.story + (state.story ? ' ' : '') + input;
+    const turnCount = state.turnCount + 1;
+
+
     setState(prev => ({
       ...prev,
+      story: storyWithUserInput,
+      turnCount: turnCount,
       userInput: '',
       isLoading: true,
-      error: null
+      errorMessage: null
     }));
 
     try {
-      const result = await submitStory(state.story, input);
+      const result = await submitStory(storyWithUserInput);
       setState(prev => ({
         ...prev,
-        story: result.fullStory,
-        turnCount: prev.turnCount + 1,
+        story: storyWithUserInput + result.nextStoryPart,
+        turnCount: turnCount + 1,
         isLoading: false
       }));
     } catch (error) {
       console.error('Failed to submit story:', error);
       setState(prev => ({
         ...prev,
-        error: 'Something went wrong',
+        errorMessage: 'Something went wrong',
         isLoading: false
       }));
     }
   };
 
   const handleRetry = async () => {
-    setState(prev => ({ ...prev, error: null, isLoading: true }));
+    setState(prev => ({ ...prev, errorMessage: null, isLoading: true }));
 
     try {
       const result = await retryLastRequest();
       setState(prev => ({
         ...prev,
-        story: result.fullStory,
+        story: prev.story + (prev.story ? ' ' : '') + result.nextStoryPart,
         turnCount: prev.turnCount + 1,
         isLoading: false
       }));
@@ -69,19 +75,19 @@ export default function Home() {
       console.error('Failed to retry story:', error);
       setState(prev => ({
         ...prev,
-        error: 'Something went wrong',
+        errorMessage: 'Something went wrong',
         isLoading: false
       }));
     }
   };
 
   const handleInputChange = (value: string) => {
-    setState(prev => ({ ...prev, userInput: value, error: null }));
+    setState(prev => ({ ...prev, userInput: value, errorMessage: null }));
   };
 
   return (
     <div className="h-screen flex flex-col">
-      <h1 className="text-center text-3xl font-bold py-6">My Story</h1>
+      <h1 className="text-center text-3xl font-bold py-6 mt-10">My Story</h1>
 
       <div className="flex-1 flex justify-center overflow-hidden">
         <div className="max-w-2xl w-full px-4 relative">
@@ -90,14 +96,14 @@ export default function Home() {
             turnCount={state.turnCount}
           />
 
-          {state.error && (
+          {state.errorMessage && (
             <ErrorMessage
-              message={state.error}
+              message={state.errorMessage}
               onRetry={handleRetry}
             />
           )}
 
-          {state.isLoading && <LoadingIndicator />}
+          {/* {state.isLoading && <LoadingIndicator />} */}
         </div>
       </div>
 
