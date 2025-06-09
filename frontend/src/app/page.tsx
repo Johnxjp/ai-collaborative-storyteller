@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import StoryDisplay from '@/components/StoryDisplay'
 import StoryInput from '@/components/StoryInput';
-import LoadingIndicator from '@/components/LoadingIndicator';
 import ErrorMessage from '@/components/ErrorMessage';
 import { useStoryAPI } from '@/hooks/useStoryAPI';
 
@@ -13,6 +12,8 @@ interface AppState {
   isLoading: boolean;
   errorMessage: string | null;
   turnCount: number;
+  images: string[]; // Array of image URLs
+  isLoadingImage: boolean;
 }
 
 export default function Home() {
@@ -21,17 +22,38 @@ export default function Home() {
     userInput: '',
     isLoading: false,
     errorMessage: null,
-    turnCount: 0
+    turnCount: 0,
+    images: [],
+    isLoadingImage: false
   });
 
   const { submitStory, retryLastRequest } = useStoryAPI();
+
+  const loadSceneImage = async (sceneNumber: number) => {
+    setState(prev => ({ ...prev, isLoadingImage: true }));
+
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const imageUrl = `/scene_${sceneNumber}.png`;
+      console.log(`Loading image for scene ${sceneNumber}: ${imageUrl}`);
+      setState(prev => ({
+        ...prev,
+        images: [...prev.images, imageUrl],
+        isLoadingImage: false
+      }));
+    } catch (error) {
+      console.error('Failed to load image:', error);
+      setState(prev => ({ ...prev, isLoadingImage: false }));
+    }
+  };
 
   const handleSubmit = async (input: string) => {
     if (input.trim() === '') return;
 
     const storyWithUserInput = state.story + (state.story ? ' ' : '') + input;
     const turnCount = state.turnCount + 1;
-
 
     setState(prev => ({
       ...prev,
@@ -46,10 +68,13 @@ export default function Home() {
       const result = await submitStory(storyWithUserInput);
       setState(prev => ({
         ...prev,
-        story: storyWithUserInput + result.nextStoryPart,
+        story: storyWithUserInput + ' ' + result.nextStoryPart,
         turnCount: turnCount + 1,
         isLoading: false
       }));
+
+      // Load image after AI response (only on even turn counts, when AI has responded)
+      await loadSceneImage(turnCount + 1);
     } catch (error) {
       console.error('Failed to submit story:', error);
       setState(prev => ({
@@ -94,6 +119,8 @@ export default function Home() {
           <StoryDisplay
             story={state.story}
             turnCount={state.turnCount}
+            images={state.images}
+            isLoadingImage={state.isLoadingImage}
           />
 
           {state.errorMessage && (
@@ -103,7 +130,6 @@ export default function Home() {
             />
           )}
 
-          {/* {state.isLoading && <LoadingIndicator />} */}
         </div>
       </div>
 
