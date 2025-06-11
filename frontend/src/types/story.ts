@@ -5,17 +5,28 @@ export interface StoryStarter {
     category: string;
 }
 
+export interface Page {
+    id: string;
+    userText: string;
+    aiText: string;
+    imageUrl: string | null;
+    isComplete: boolean;
+    turnNumber: number;
+}
+
 export interface StoryPageState {
     starterId?: string;
     starterTitle?: string;
     openingText?: string;
     openingImage?: string;
     isGeneratingOpening: boolean;
-    story: string;
-    userInput: string;
-    isLoading: boolean;
+    pages: Page[];
+    currentPageIndex: number;
+    currentInput: string;
+    isGeneratingText: boolean;
+    isGeneratingImage: boolean;
     errorMessage: string | null;
-    turnCount: number;
+    isUserTurn: boolean;
 }
 
 export interface OpeningResponse {

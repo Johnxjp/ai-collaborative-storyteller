@@ -96,11 +96,6 @@ export default function StoryDisplay({ story, turnCount }: StoryDisplayProps) {
                 className="text-lg leading-relaxed"
                 style={{ minHeight: '100px', fontSize: '30px' }}
             >
-                {!story && (
-                    <p className="text-gray-500 text-center italic">
-                        Start your story
-                    </p>
-                )}
             </div>
         </div>
     );

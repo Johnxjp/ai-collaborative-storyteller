@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${figtree.variable} antialiased`}
+        className={`${figtree.variable} antialiased bg-gradient-to-br from-blue-50 to-purple-50`}
         style={{ fontFamily: 'var(--font-figtree), sans-serif' }}
       >
         {children}

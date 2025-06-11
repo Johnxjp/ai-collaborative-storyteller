@@ -1,19 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import StoryDisplay from '@/components/StoryDisplay'
+import { v4 as uuidv4 } from 'uuid';
+import TurnIndicator from '@/components/TurnIndicator';
+import PageContent from '@/components/PageView/PageContent';
+import NavigationArrows from '@/components/PageView/NavigationArrows';
 import StoryInput from '@/components/StoryInput';
+import InputPrompt from '@/components/StoryInput/InputPrompt';
 import ErrorMessage from '@/components/ErrorMessage';
 import StoryOpening from '@/components/story/StoryOpening';
 import LoadingIndicator from '@/components/LoadingIndicator';
+import ImageSkeleton from '@/components/ContentGeneration/ImageSkeleton';
 import { useStoryAPI } from '@/hooks/useStoryAPI';
-import { StoryPageState } from '@/types/story';
+import { usePageNavigation } from '@/hooks/usePageNavigation';
+import { StoryPageState, Page } from '@/types/story';
 import { storyStarters } from '@/data/storyStarters';
 
 export default function StoryPage() {
   const searchParams = useSearchParams();
   const starterId = searchParams.get('starter');
+  const pageContentRef = useRef<HTMLDivElement>(null);
 
   const [state, setState] = useState<StoryPageState>({
     starterId: starterId || undefined,
@@ -21,14 +28,25 @@ export default function StoryPage() {
     openingText: undefined,
     openingImage: undefined,
     isGeneratingOpening: false,
-    story: '',
-    userInput: '',
-    isLoading: false,
+    pages: [],
+    currentPageIndex: 0,
+    currentInput: '',
+    isGeneratingText: false,
+    isGeneratingImage: false,
     errorMessage: null,
-    turnCount: 0
+    isUserTurn: true
   });
 
-  const { submitStory, retryLastRequest, generateOpening } = useStoryAPI();
+  const { submitStory, generateOpening, generateImage } = useStoryAPI();
+  const {
+    currentPageIndex,
+    currentPage,
+    canGoBack,
+    canGoForward,
+    isOnLatestPage,
+    navigatePage,
+    pages: managedPages
+  } = usePageNavigation({ pages: state.pages });
 
   // Generate opening when component mounts with a starter
   useEffect(() => {
@@ -46,7 +64,7 @@ export default function StoryPage() {
             setState(prev => ({
               ...prev,
               openingText: result.openingText,
-              openingImage: `/scene_opening_${starter.category}.svg`,
+              openingImage: starter.imagePath,
               isGeneratingOpening: false
             }));
           })
@@ -62,69 +80,102 @@ export default function StoryPage() {
     }
   }, [starterId, state.openingText, generateOpening]);
 
-  const handleSubmit = async (input: string) => {
-    if (input.trim() === '') return;
+  // Update current page index when pages change
+  useEffect(() => {
+    setState(prev => ({ ...prev, currentPageIndex }));
+  }, [currentPageIndex]);
 
-    const fullStory = (state.openingText || '') + (state.story ? ' ' + state.story : '');
-    const storyWithUserInput = fullStory + (fullStory ? ' ' : '') + input;
-    const turnCount = state.turnCount + 1;
+  // Reset scroll position when navigating between pages
+  useEffect(() => {
+    if (pageContentRef.current) {
+      pageContentRef.current.scrollTo(0, 0);
+    }
+  }, [currentPageIndex]);
+
+  const handleSubmit = async (input: string) => {
+    if (input.trim() === '' || !isOnLatestPage) return;
+
+    const newPageId = uuidv4();
+    const turnNumber = state.pages.length + 1;
+
+    // Create new page with user input
+    const newPage: Page = {
+      id: newPageId,
+      userText: input.trim(),
+      aiText: '',
+      imageUrl: null,
+      isComplete: false,
+      turnNumber
+    };
 
     setState(prev => ({
       ...prev,
-      story: prev.story + (prev.story ? ' ' : '') + input,
-      turnCount: turnCount,
-      userInput: '',
-      isLoading: true,
-      errorMessage: null
+      pages: [...prev.pages, newPage],
+      currentInput: '',
+      isGeneratingText: true,
+      isUserTurn: false
     }));
 
-    // Wait for user text to finish animating before making API call
-    const userWords = input.trim().split(' ');
-    const animationDelay = userWords.length * 200; // 200ms per word
-
-    setTimeout(async () => {
-      try {
-        const result = await submitStory(storyWithUserInput);
-        setState(prev => ({
-          ...prev,
-          story: prev.story + ' ' + result.nextStoryPart,
-          turnCount: turnCount + 1,
-          isLoading: false
-        }));
-      } catch (error) {
-        console.error('Failed to submit story:', error);
-        setState(prev => ({
-          ...prev,
-          errorMessage: 'Something went wrong',
-          isLoading: false
-        }));
-      }
-    }, animationDelay);
-  };
-
-  const handleRetry = async () => {
-    setState(prev => ({ ...prev, errorMessage: null, isLoading: true }));
-
     try {
-      const result = await retryLastRequest();
+      // Generate AI response
+      const fullStory = (state.openingText || '') + ' ' +
+        state.pages.map(p => p.userText + ' ' + p.aiText).join(' ') + ' ' + input;
+
+      const result = await submitStory(fullStory);
+
       setState(prev => ({
         ...prev,
-        story: prev.story + (prev.story ? ' ' : '') + result.nextStoryPart,
-        turnCount: prev.turnCount + 1,
-        isLoading: false
+        pages: prev.pages.map(page =>
+          page.id === newPageId
+            ? { ...page, aiText: result.nextStoryPart }
+            : page
+        ),
+        isGeneratingText: false,
+        isGeneratingImage: true
       }));
+
+      // Generate image for the page
+      const pageContent = input + ' ' + result.nextStoryPart;
+      const imageResult = await generateImage(pageContent, turnNumber);
+
+      setState(prev => ({
+        ...prev,
+        pages: prev.pages.map(page =>
+          page.id === newPageId
+            ? { ...page, imageUrl: imageResult.imageUrl, isComplete: true }
+            : page
+        ),
+        isGeneratingImage: false,
+        isUserTurn: true
+      }));
+
     } catch (error) {
-      console.error('Failed to retry story:', error);
+      console.error('Failed to generate story:', error);
       setState(prev => ({
         ...prev,
         errorMessage: 'Something went wrong',
-        isLoading: false
+        isGeneratingText: false,
+        isGeneratingImage: false,
+        isUserTurn: true
       }));
     }
   };
 
   const handleInputChange = (value: string) => {
-    setState(prev => ({ ...prev, userInput: value, errorMessage: null }));
+    setState(prev => ({ ...prev, currentInput: value, errorMessage: null }));
+  };
+
+  const handleRetry = async () => {
+    setState(prev => ({ ...prev, errorMessage: null }));
+
+    if (currentPage && !currentPage.isComplete) {
+      // Retry the current page generation
+      await handleSubmit(currentPage.userText);
+    }
+  };
+
+  const handleNavigation = (direction: 'prev' | 'next') => {
+    navigatePage(direction);
   };
 
   // Show loading while generating opening
@@ -139,11 +190,29 @@ export default function StoryPage() {
     );
   }
 
+  const isInputDisabled = !isOnLatestPage || state.isGeneratingText || state.isGeneratingImage;
+  const showInputPrompt = isOnLatestPage && state.isUserTurn && !state.isGeneratingText && !state.isGeneratingImage;
+
   return (
-    <div className="h-screen flex flex-col">
-      <div className="flex-1 flex justify-center overflow-hidden">
-        <div className="max-w-2xl w-full px-4 relative">
-          {state.openingText && (
+    <div className="h-screen flex flex-col relative">
+      {/* Turn Indicator */}
+      <TurnIndicator
+        isUserTurn={state.isUserTurn}
+        isGenerating={state.isGeneratingText || state.isGeneratingImage}
+      />
+
+      {/* Navigation Arrows */}
+      <NavigationArrows
+        canGoBack={canGoBack}
+        canGoForward={canGoForward}
+        onNavigate={handleNavigation}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 pt-16 pb-4 max-w-2xl mx-auto px-4">
+        <div className="page-content-container" ref={pageContentRef}>
+          {/* Story Opening */}
+          {state.openingText && managedPages.length === 0 && (
             <StoryOpening
               title={state.starterTitle || 'Your Story'}
               openingText={state.openingText}
@@ -152,11 +221,41 @@ export default function StoryPage() {
             />
           )}
 
-          <StoryDisplay
-            story={state.story}
-            turnCount={state.turnCount}
-          />
+          {/* Current Page Content */}
+          {currentPage && (
+            <div>
+              {/* Image with loading state */}
+              {state.isGeneratingImage && isOnLatestPage ? (
+                <ImageSkeleton />
+              ) : currentPage.imageUrl ? (
+                <PageContent
+                  page={currentPage}
+                  isAnimating={isOnLatestPage && (state.isGeneratingText || state.isGeneratingImage)}
+                />
+              ) : (
+                <div className="w-full max-w-2xl mx-auto px-4">
+                  <div className="space-y-4">
+                    {currentPage.userText && (
+                      <div className="text-lg leading-relaxed">
+                        <p className="font-bold text-gray-800">
+                          {currentPage.userText}
+                        </p>
+                      </div>
+                    )}
+                    {currentPage.aiText && (
+                      <div className="text-lg leading-relaxed">
+                        <p className="text-gray-700">
+                          {currentPage.aiText}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
+          {/* Error Message */}
           {state.errorMessage && (
             <ErrorMessage
               message={state.errorMessage}
@@ -166,12 +265,41 @@ export default function StoryPage() {
         </div>
       </div>
 
+      {/* Input Prompt */}
+      <InputPrompt isVisible={showInputPrompt} />
+
+      {/* Input Field */}
       <StoryInput
-        value={state.userInput}
+        value={state.currentInput}
         onChange={handleInputChange}
         onSubmit={handleSubmit}
-        disabled={state.isLoading}
+        disabled={isInputDisabled}
       />
+
+      <style jsx>{`
+        .page-content-container {
+          height: calc(100vh - 200px);
+          overflow-y: auto;
+          scroll-behavior: smooth;
+        }
+
+        .page-content-container::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .page-content-container::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+
+        .page-content-container::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 3px;
+        }
+
+        .page-content-container::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+      `}</style>
     </div>
   );
 }

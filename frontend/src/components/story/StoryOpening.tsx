@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 interface StoryOpeningProps {
     title: string;
     openingText: string;
@@ -9,8 +11,8 @@ interface StoryOpeningProps {
 
 export default function StoryOpening({ title, openingText, imageUrl, isAnimating }: StoryOpeningProps) {
     return (
-        <div className="mb-6">
-            <h1 className="text-center text-2xl font-bold py-4 text-gray-800">
+        <div className="mb-6 mt-6">
+            <h1 className="text-start text-2xl font-bold py-4 text-gray-800">
                 {title}
             </h1>
 
@@ -24,9 +26,11 @@ export default function StoryOpening({ title, openingText, imageUrl, isAnimating
 
             {imageUrl && (
                 <div className="flex justify-center my-4">
-                    <img
+                    <Image
                         src={imageUrl}
                         alt="Story opening scene"
+                        width={200}
+                        height={200}
                         className="max-w-full h-auto rounded-lg shadow-lg"
                         style={{ maxHeight: '200px' }}
                     />

@@ -98,5 +98,29 @@ export const useStoryAPI = () => {
     };
   }, []);
 
-  return { submitStory, retryLastRequest, generateOpening };
+  const generateImage = useCallback(async (pageContent: string, turnNumber: number) => {
+    const response = await fetch('http://localhost:8000/generate-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        page_content: pageContent,
+        turn_number: turnNumber,
+        style_hints: "child-friendly illustration"
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate image');
+    }
+
+    const data = await response.json();
+    return {
+      imageUrl: data.image_url,
+      generationTime: data.generation_time
+    };
+  }, []);
+
+  return { submitStory, retryLastRequest, generateOpening, generateImage };
 };

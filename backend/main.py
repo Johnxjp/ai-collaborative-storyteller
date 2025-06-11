@@ -1,5 +1,7 @@
 import os
 import json
+import asyncio
+import time
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -19,13 +21,24 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend origin
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Frontend origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+class ImageRequest(BaseModel):
+    page_content: str
+    turn_number: int
+    style_hints: str = None
+
+
+class ImageResponse(BaseModel):
+    image_url: str
+    generation_time: float
 
 
 class OpeningRequest(BaseModel):
@@ -89,6 +102,39 @@ async def generate_story(request: StoryRequest):
                 "Content-Type": "text/event-stream",
             },
         )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate-image")
+async def generate_image(request: ImageRequest):
+    try:
+        import time
+
+        # For now, return a placeholder image URL since we don't have actual image generation
+        # In production, this would call DALL-E or similar service
+
+        # Create a simple prompt from the page content
+        prompt = f"Child-friendly illustration: {request.page_content[:100]}..."
+
+        # Simulate image generation delay
+        await asyncio.sleep(1)
+
+        # Return a placeholder image URL (using scene images for now)
+        scene_images = [
+            "/scene_opening_adventure.svg",
+            "/scene_opening_space.svg",
+            "/scene_opening_fantasy.svg",
+            "/scene_opening_cooking.svg",
+            "/scene_opening_sports.svg",
+        ]
+
+        # Use turn number to cycle through available images
+        image_index = (request.turn_number - 1) % len(scene_images)
+        image_url = scene_images[image_index]
+
+        return ImageResponse(image_url=image_url, generation_time=time.time())
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

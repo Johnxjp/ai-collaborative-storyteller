@@ -15,10 +15,10 @@ export default function StoryStarterGrid() {
     return (
         <div className="w-full max-w-2xl mx-auto px-4">
             <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-                Choose Your Adventure!
+                Tell A Story
             </h1>
 
-            <div className="grid grid-cols-2 gap-8 justify-items-center">
+            <div className="px-16 grid grid-cols-2 gap-4">
                 {storyStarters.map((starter) => (
                     <StoryStarterCard
                         key={starter.id}
