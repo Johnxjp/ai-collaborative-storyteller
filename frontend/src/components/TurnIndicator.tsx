@@ -8,7 +8,7 @@ interface TurnIndicatorProps {
 export default function TurnIndicator({ isUserTurn, isGenerating }: TurnIndicatorProps) {
     const getIndicatorText = () => {
         if (isGenerating) {
-            return isUserTurn ? "Your pal's turn" : "Thinking...";
+            return isUserTurn ? "Your pal's turn" : "Your pal's turn.";
         }
         return isUserTurn ? "Your turn" : "Your pal's turn";
     };
@@ -17,7 +17,7 @@ export default function TurnIndicator({ isUserTurn, isGenerating }: TurnIndicato
         if (isUserTurn && !isGenerating) {
             return "bg-blue-500 text-white";
         }
-        return "bg-gray-200 text-gray-700";
+        return "bg-red-200 text-gray-700";
     };
 
     return (

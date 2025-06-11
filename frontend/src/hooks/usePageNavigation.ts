@@ -34,7 +34,7 @@ export const usePageNavigation = ({ pages, maxPages = 100 }: UsePageNavigationPr
     const canGoBack = currentPageIndex > 0;
     const canGoForward = currentPageIndex < pages.length - 1;
     const currentPage = pages[currentPageIndex] || null;
-    const isOnLatestPage = currentPageIndex === pages.length - 1;
+    const isOnLatestPage = pages.length === 0 || currentPageIndex === pages.length - 1;
 
     // Memory management - limit stored pages
     const managedPages = pages.length > maxPages
