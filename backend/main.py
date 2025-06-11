@@ -28,6 +28,17 @@ app.add_middleware(
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
+class OpeningRequest(BaseModel):
+    category: str
+    title: str
+
+
+class OpeningResponse(BaseModel):
+    opening_text: str
+    image_prompt: str
+    title: str
+
+
 class StoryRequest(BaseModel):
     story: str
 
@@ -77,6 +88,29 @@ async def generate_story(request: StoryRequest):
                 "Connection": "keep-alive",
                 "Content-Type": "text/event-stream",
             },
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate-opening")
+async def generate_opening(request: OpeningRequest):
+    try:
+        # Predefined openings based on category
+        openings = {
+            "adventure": "You stand at the edge of a mysterious island, waves crashing against ancient rocks. A weathered map in your hand points to an X marking the spot where countless treasures await. The salty air carries whispers of adventures past and the promise of riches beyond imagination.",
+            "space": "The countdown reaches zero and your rocket ship blasts off into the starlit sky! Through the porthole, Earth grows smaller as you zoom past planets and dancing comets. Your destination: a mysterious planet where no human has ever set foot before.",
+            "fantasy": "Stepping through the morning mist, you discover a magical marketplace where nothing is quite as it seems. Floating lanterns cast rainbow shadows, and the air shimmers with enchantment. A friendly wizard waves you over to their stall filled with glowing potions and mysterious artifacts.",
+            "cooking": "You put on your chef's hat and step into the most amazing kitchen you've ever seen! Pots and pans seem to move on their own, spices dance in the air, and a talking wooden spoon offers to be your sous chef. Today, you're going to create something truly magical.",
+            "sports": "The crowd roars as you step onto the field for the championship game. This is the moment you've trained for your entire life. The ball is at your feet, your teammates are counting on you, and victory is within reach. The whistle blows and the game begins!",
+        }
+
+        opening_text = openings.get(request.category, "Your adventure begins now...")
+        image_prompt = f"A beautiful, child-friendly illustration of {request.title.lower()}"
+
+        return OpeningResponse(
+            opening_text=opening_text, image_prompt=image_prompt, title=request.title
         )
 
     except Exception as e:

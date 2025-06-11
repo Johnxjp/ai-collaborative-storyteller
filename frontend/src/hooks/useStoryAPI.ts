@@ -74,5 +74,29 @@ export const useStoryAPI = () => {
     return await submitStory(lastRequestRef.current.story);
   }, [submitStory]);
 
-  return { submitStory, retryLastRequest };
+  const generateOpening = useCallback(async (category: string, title: string) => {
+    const response = await fetch('http://localhost:8000/generate-opening', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        category,
+        title
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate opening');
+    }
+
+    const data = await response.json();
+    return {
+      openingText: data.opening_text,
+      imagePrompt: data.image_prompt,
+      title: data.title
+    };
+  }, []);
+
+  return { submitStory, retryLastRequest, generateOpening };
 };
