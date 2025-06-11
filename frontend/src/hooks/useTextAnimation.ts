@@ -1,29 +1,34 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
-export const useTextAnimation = () => {
-  const animateText = useCallback((word: string, globalWordIndex: number, batchIndex: number, container: HTMLElement, isUserText: boolean = false) => {
-    // Ensure we're only adding text to paragraph elements
-    if (container.tagName !== 'P') {
-      console.error('Warning: Trying to add text to non-paragraph element:', container.tagName);
+export const useTextAnimation = (text: string, shouldAnimate: boolean, delay: number = 200) => {
+  const [animatedText, setAnimatedText] = useState('');
+
+  useEffect(() => {
+    if (!shouldAnimate || !text) {
+      setAnimatedText(text);
       return;
     }
 
-    const space = document.createTextNode(' ');
-    const newTextElement = document.createElement('span');
-    newTextElement.id = `word-${globalWordIndex}`;
-    newTextElement.className = isUserText ? 'new-text font-semibold' : 'new-text';
-    newTextElement.textContent = word;
+    const words = text.split(' ');
+    setAnimatedText('');
 
-    container.appendChild(space);
-    container.appendChild(newTextElement);
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      if (currentIndex < words.length) {
+        setAnimatedText(prevText => {
+          const newText = prevText ? `${prevText} ${words[currentIndex]}` : words[currentIndex];
+          return newText;
+        });
+        currentIndex++;
+      } else {
+        clearInterval(interval);
+      }
+    }, delay);
 
-    const delay = 150;
-    setTimeout(() => {
-      newTextElement.classList.add('fade-in');
-    }, delay * (batchIndex + 1));
-  }, []);
+    return () => clearInterval(interval);
+  }, [text, shouldAnimate, delay]);
 
-  return { animateText };
+  return { animatedText };
 };

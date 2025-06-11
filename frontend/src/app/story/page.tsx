@@ -93,7 +93,7 @@ export default function StoryPage() {
   }, [currentPageIndex]);
 
   const handleSubmit = async (input: string) => {
-    if (input.trim() === '' || !isOnLatestPage) return;
+    if (input.trim() === '') return;
 
     const newPageId = uuidv4();
     const turnNumber = state.pages.length + 1;
@@ -190,8 +190,8 @@ export default function StoryPage() {
     );
   }
 
-  const isInputDisabled = !isOnLatestPage || state.isGeneratingText || state.isGeneratingImage;
-  const showInputPrompt = isOnLatestPage && state.isUserTurn && !state.isGeneratingText && !state.isGeneratingImage;
+  const isInputDisabled = state.isGeneratingText || state.isGeneratingImage || !state.isUserTurn;
+  const showInputPrompt = state.isUserTurn && !state.isGeneratingText && !state.isGeneratingImage;
 
   return (
     <div className="h-screen flex flex-col relative">
