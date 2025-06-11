@@ -7,7 +7,6 @@ import TurnIndicator from '@/components/TurnIndicator';
 import PageContent from '@/components/PageView/PageContent';
 import NavigationArrows from '@/components/PageView/NavigationArrows';
 import StoryInput from '@/components/StoryInput';
-import InputPrompt from '@/components/StoryInput/InputPrompt';
 import ErrorMessage from '@/components/ErrorMessage';
 import StoryOpening from '@/components/StoryOpening';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -23,8 +22,8 @@ export default function StoryPage() {
   const pageContentRef = useRef<HTMLDivElement>(null);
 
   const [state, setState] = useState<StoryPageState>({
-    starterId: starterId || undefined,
-    starterTitle: undefined,
+    starterId: starterId || '',
+    starterTitle: '',
     openingText: undefined,
     openingImage: undefined,
     isGeneratingOpening: false,
@@ -37,6 +36,9 @@ export default function StoryPage() {
     isUserTurn: true
   });
 
+  // Track if opening has been shown to animate only on first view
+  const [hasSeenOpening, setHasSeenOpening] = useState(false);
+
   const { submitStory, generateOpening, generateImage } = useStoryAPI();
   const {
     currentPageIndex,
@@ -45,8 +47,7 @@ export default function StoryPage() {
     canGoForward,
     isOnLatestPage,
     isOnOpeningPage,
-    navigatePage,
-    pages: managedPages
+    navigatePage
   } = usePageNavigation({ pages: state.pages });
 
   // Generate opening when component mounts with a starter
@@ -85,6 +86,13 @@ export default function StoryPage() {
   useEffect(() => {
     setState(prev => ({ ...prev, currentPageIndex }));
   }, [currentPageIndex]);
+
+  // Mark opening as seen when it's first displayed on the opening page
+  useEffect(() => {
+    if (state.openingText && isOnOpeningPage && !hasSeenOpening) {
+      setHasSeenOpening(true);
+    }
+  }, [state.openingText, isOnOpeningPage, hasSeenOpening]);
 
   // Reset scroll position when navigating between pages
   useEffect(() => {
@@ -203,70 +211,72 @@ export default function StoryPage() {
         onNavigate={handleNavigation}
       />
 
-      {/* Main Content Area */}
-      <div className="flex grow flex-col pt-16 pb-4 max-w-2xl mx-auto px-4 items-center max-h-full">
-        {/* Turn Indicator */}
-        <TurnIndicator
-          isUserTurn={state.isUserTurn}
-          isGenerating={state.isGeneratingText || state.isGeneratingImage}
-        />
+      {/* Main Content Area - Takes remaining space above input */}
+      <div className="flex-1 overflow-hidden">
+        <div className="flex flex-col h-full pt-16 pb-4 max-w-2xl mx-auto px-4 items-center">
+          {/* Turn Indicator */}
+          <TurnIndicator
+            isUserTurn={state.isUserTurn}
+            isGenerating={state.isGeneratingText || state.isGeneratingImage}
+          />
 
+          {/* Scrollable Content */}
+          <div className="flex-1 w-full overflow-y-auto pb-4" ref={pageContentRef}>
+            {/* Story Opening */}
+            {state.openingText && isOnOpeningPage && (
+              <StoryOpening
+                title={state.starterTitle}
+                openingText={state.openingText}
+                imageUrl={state.openingImage}
+                isAnimating={!hasSeenOpening}
+              />
+            )}
 
-        <div className="flex-1 grow overflow-y-scroll pb-30" ref={pageContentRef}>
-          {/* Story Opening */}
-          {state.openingText && isOnOpeningPage && (
-            <StoryOpening
-              title={state.starterTitle}
-              openingText={state.openingText}
-              imageUrl={state.openingImage}
-              isAnimating={true}
-            />
-          )}
-
-          {/* Current Page Content */}
-          {currentPage && (
-            <div>
-              {/* Image with loading state */}
-              {state.isGeneratingImage && isOnLatestPage ? (
-                <div>
-                  <PageContent
-                    page={currentPage}
-                  // isAnimating={isOnLatestPage && (state.isGeneratingText || state.isGeneratingImage)}
-                  />
-                </div>
-              ) : (
+            {/* Current Page Content */}
+            {currentPage && (
+              <div>
                 <PageContent
                   page={currentPage}
-                // isAnimating={isOnLatestPage && (state.isGeneratingText || state.isGeneratingImage)}
                 />
-              )}
+
+                {/* Image Skeleton while generating */}
+                {state.isGeneratingImage && isOnLatestPage && (
+                  <div className="mt-6">
+                    <ImageSkeleton />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Error Message */}
+            {state.errorMessage && (
+              <ErrorMessage
+                message={state.errorMessage}
+                onRetry={handleRetry}
+              />
+            )}
+          </div>
+
+          {/* Input Prompt - Fixed above input */}
+          {showInputPrompt && (
+            <div className="w-full text-center py-4">
+              <p className="font-semibold text-gray-800">
+                What happens next?
+              </p>
             </div>
           )}
-
-          {/* Error Message */}
-          {state.errorMessage && (
-            <ErrorMessage
-              message={state.errorMessage}
-              onRetry={handleRetry}
-            />
-          )}
         </div>
-
-        {/* Input Prompt */}
-        {showInputPrompt && (
-          <p className='py-6 font-semibold text-gray-800'>
-            What happens next?
-          </p>
-        )}
       </div>
 
-      {/* Input Field */}
-      <StoryInput
-        value={state.currentInput}
-        onChange={handleInputChange}
-        onSubmit={handleSubmit}
-        disabled={isInputDisabled}
-      />
+      {/* Input Field - Fixed at bottom */}
+      <div className="flex-none">
+        <StoryInput
+          value={state.currentInput}
+          onChange={handleInputChange}
+          onSubmit={handleSubmit}
+          disabled={isInputDisabled}
+        />
+      </div>
     </div>
   );
 }

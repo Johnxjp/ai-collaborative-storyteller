@@ -9,7 +9,7 @@ interface PageContentProps {
 
 export default function PageContent({ page }: PageContentProps) {
     return (
-        <div className="w-full max-w-2xl min-w-2xl mx-auto px-4 mt-10">
+        <div className="w-full max-w-2xl mx-auto px-4 mt-10">
             {/* Text Content */}
             <div className="space-y-4 mb-6">
                 <div className="text-lg leading-relaxed">
@@ -34,8 +34,8 @@ export default function PageContent({ page }: PageContentProps) {
                     <Image
                         src={page.imageUrl}
                         alt={`Story scene for turn ${page.turnNumber}`}
-                        width={600}
-                        height={400}
+                        width={500}
+                        height={333}
                         className="w-full h-full object-cover rounded-lg shadow-lg"
                     />
                 </div>
