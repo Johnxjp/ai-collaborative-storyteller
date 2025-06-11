@@ -4,10 +4,16 @@ import { useCallback } from 'react';
 
 export const useTextAnimation = () => {
   const animateText = useCallback((word: string, globalWordIndex: number, batchIndex: number, container: HTMLElement, isUserText: boolean = false) => {
+    // Ensure we're only adding text to paragraph elements
+    if (container.tagName !== 'P') {
+      console.error('Warning: Trying to add text to non-paragraph element:', container.tagName);
+      return;
+    }
+
     const space = document.createTextNode(' ');
     const newTextElement = document.createElement('span');
     newTextElement.id = `word-${globalWordIndex}`;
-    newTextElement.className = isUserText ? 'new-text user-text' : 'new-text';
+    newTextElement.className = isUserText ? 'new-text font-semibold' : 'new-text';
     newTextElement.textContent = word;
 
     container.appendChild(space);

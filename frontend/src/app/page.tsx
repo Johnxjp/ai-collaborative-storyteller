@@ -12,8 +12,6 @@ interface AppState {
   isLoading: boolean;
   errorMessage: string | null;
   turnCount: number;
-  images: string[]; // Array of image URLs
-  isLoadingImage: boolean;
 }
 
 export default function Home() {
@@ -22,32 +20,10 @@ export default function Home() {
     userInput: '',
     isLoading: false,
     errorMessage: null,
-    turnCount: 0,
-    images: [],
-    isLoadingImage: false
+    turnCount: 0
   });
 
   const { submitStory, retryLastRequest } = useStoryAPI();
-
-  const loadSceneImage = async (sceneNumber: number) => {
-    setState(prev => ({ ...prev, isLoadingImage: true }));
-
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const imageUrl = `/scene_${sceneNumber}.png`;
-      console.log(`Loading image for scene ${sceneNumber}: ${imageUrl}`);
-      setState(prev => ({
-        ...prev,
-        images: [...prev.images, imageUrl],
-        isLoadingImage: false
-      }));
-    } catch (error) {
-      console.error('Failed to load image:', error);
-      setState(prev => ({ ...prev, isLoadingImage: false }));
-    }
-  };
 
   const handleSubmit = async (input: string) => {
     if (input.trim() === '') return;
@@ -64,25 +40,28 @@ export default function Home() {
       errorMessage: null
     }));
 
-    try {
-      const result = await submitStory(storyWithUserInput);
-      setState(prev => ({
-        ...prev,
-        story: storyWithUserInput + ' ' + result.nextStoryPart,
-        turnCount: turnCount + 1,
-        isLoading: false
-      }));
+    // Wait for user text to finish animating before making API call
+    const userWords = input.trim().split(' ');
+    const animationDelay = userWords.length * 200; // 200ms per word
 
-      // Load image after AI response (only on even turn counts, when AI has responded)
-      await loadSceneImage(turnCount + 1);
-    } catch (error) {
-      console.error('Failed to submit story:', error);
-      setState(prev => ({
-        ...prev,
-        errorMessage: 'Something went wrong',
-        isLoading: false
-      }));
-    }
+    setTimeout(async () => {
+      try {
+        const result = await submitStory(storyWithUserInput);
+        setState(prev => ({
+          ...prev,
+          story: storyWithUserInput + ' ' + result.nextStoryPart,
+          turnCount: turnCount + 1,
+          isLoading: false
+        }));
+      } catch (error) {
+        console.error('Failed to submit story:', error);
+        setState(prev => ({
+          ...prev,
+          errorMessage: 'Something went wrong',
+          isLoading: false
+        }));
+      }
+    }, animationDelay);
   };
 
   const handleRetry = async () => {
@@ -119,8 +98,6 @@ export default function Home() {
           <StoryDisplay
             story={state.story}
             turnCount={state.turnCount}
-            images={state.images}
-            isLoadingImage={state.isLoadingImage}
           />
 
           {state.errorMessage && (

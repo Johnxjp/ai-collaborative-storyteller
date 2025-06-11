@@ -32,27 +32,40 @@ class StoryRequest(BaseModel):
     story: str
 
 
+dummy_ai_responses = [
+    "She was best friends with a yellow dragon named Spark.",
+    "They were all happy together.",
+    "Suddenly, there was a big big cave in the middle of the forest.",
+]
+dummy_ai_responses_iter = iter(dummy_ai_responses)
+
+
 @app.post("/generate-story")
 async def generate_story(request: StoryRequest):
+    global dummy_ai_responses_iter
+    next_response = next(dummy_ai_responses_iter, None)
+    if next_response is None:
+        dummy_ai_responses_iter = iter(dummy_ai_responses)
+        next_response = next(dummy_ai_responses_iter, None)
     try:
         # Construct the prompt
         user_prompt = user_prompt_template.format(story=request.story.strip())
 
         # Create OpenAI streaming response
-        stream = client.responses.create(
-            model="gpt-4o-mini",
-            instructions=system_prompt,
-            input=user_prompt,
-            stream=True,
-            max_output_tokens=150,
-            temperature=0.8,
-        )
+        # stream = client.responses.create(
+        #     model="gpt-4o-mini",
+        #     instructions=system_prompt,
+        #     input=user_prompt,
+        #     stream=True,
+        #     max_output_tokens=150,
+        #     temperature=0.8,
+        # )
 
-        async def generate():
-            for event in stream:
-                if event.type == "response.output_text.delta":
-                    content = event.delta
-                    yield f"data: {json.dumps({'content': content})}\n\n"
+        def generate():
+            for event in next_response:
+                # if event.type == "response.output_text.delta":
+                #     content = event.delta
+                yield f"data: {json.dumps({'content': event})}\n\n"
 
             yield f"data: {json.dumps({'done': True})}\n\n"
 
