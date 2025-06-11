@@ -21,12 +21,10 @@ export default function TurnIndicator({ isUserTurn, isGenerating }: TurnIndicato
     };
 
     return (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
-            <div className={`px-6 py-2 rounded-full transition-all duration-300 ${getIndicatorColor()}`}>
-                <span className="text-sm font-medium">
-                    {getIndicatorText()}
-                </span>
-            </div>
+        <div className={`text-center w-50 px-6 py-2 rounded-full transition-all duration-300 ${getIndicatorColor()}`}>
+            <span className="text-sm font-medium">
+                {getIndicatorText()}
+            </span>
         </div>
     );
 }

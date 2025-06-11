@@ -16,7 +16,7 @@ export interface Page {
 
 export interface StoryPageState {
     starterId?: string;
-    starterTitle?: string;
+    starterTitle: string;
     openingText?: string;
     openingImage?: string;
     isGeneratingOpening: boolean;
@@ -33,4 +33,15 @@ export interface OpeningResponse {
     opening_text: string;
     image_prompt: string;
     title: string;
+}
+
+export interface ImageResponse {
+    imageUrl: string;
+}
+
+export interface ImageRequest {
+    prompt: string;
+    story_id: string;
+    page_id: string;
+    style_hints?: string;
 }

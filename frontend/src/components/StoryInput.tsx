@@ -37,11 +37,10 @@ export default function StoryInput({ value, onChange, onSubmit, disabled }: Stor
     }, [handleSubmit]);
 
     return (
-        <div className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 p-4">
+        <div className="min-h-xl bg-white border-t border-gray-200 p-4">
             <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
                 <div className="flex flex-col space-y-2">
-                    <div className="flex justify-between items-center text-sm text-gray-600">
-                        <span>Add to your story...</span>
+                    <div className="flex justify-end items-center text-sm text-gray-600">
                         <span className={charCount > MAX_CHARS * 0.9 ? 'text-red-500' : ''}>
                             {charCount}/{MAX_CHARS}
                         </span>
@@ -53,18 +52,18 @@ export default function StoryInput({ value, onChange, onSubmit, disabled }: Stor
                             onChange={handleChange}
                             onKeyPress={handleKeyPress}
                             disabled={disabled}
-                            placeholder="What happens next?"
+                            placeholder="Continue the story here..."
                             className="flex-1 p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                             rows={3}
                         />
 
-                        <button
+                        {/* <button
                             type="submit"
                             disabled={disabled || !value.trim() || charCount > MAX_CHARS}
                             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed self-end"
                         >
                             {disabled ? 'Wait...' : 'Add'}
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             </form>

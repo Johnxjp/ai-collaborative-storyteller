@@ -9,7 +9,7 @@ import NavigationArrows from '@/components/PageView/NavigationArrows';
 import StoryInput from '@/components/StoryInput';
 import InputPrompt from '@/components/StoryInput/InputPrompt';
 import ErrorMessage from '@/components/ErrorMessage';
-import StoryOpening from '@/components/story/StoryOpening';
+import StoryOpening from '@/components/StoryOpening';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import ImageSkeleton from '@/components/ContentGeneration/ImageSkeleton';
 import { useStoryAPI } from '@/hooks/useStoryAPI';
@@ -44,6 +44,7 @@ export default function StoryPage() {
     canGoBack,
     canGoForward,
     isOnLatestPage,
+    isOnOpeningPage,
     navigatePage,
     pages: managedPages
   } = usePageNavigation({ pages: state.pages });
@@ -64,7 +65,7 @@ export default function StoryPage() {
             setState(prev => ({
               ...prev,
               openingText: result.openingText,
-              openingImage: starter.imagePath,
+              openingImage: `/scene_opening_${starter.category}.png`,
               isGeneratingOpening: false
             }));
           })
@@ -135,8 +136,8 @@ export default function StoryPage() {
       }));
 
       // Generate image for the page
-      const pageContent = input + ' ' + result.nextStoryPart;
-      const imageResult = await generateImage(pageContent, turnNumber);
+      const imagePrompt = `${input.trim()} ${result.nextStoryPart.trim()}`;
+      const imageResult = await generateImage(imagePrompt, state.starterId || 'story', newPageId);
 
       setState(prev => ({
         ...prev,
@@ -195,12 +196,6 @@ export default function StoryPage() {
 
   return (
     <div className="h-screen flex flex-col relative">
-      {/* Turn Indicator */}
-      <TurnIndicator
-        isUserTurn={state.isUserTurn}
-        isGenerating={state.isGeneratingText || state.isGeneratingImage}
-      />
-
       {/* Navigation Arrows */}
       <NavigationArrows
         canGoBack={canGoBack}
@@ -209,15 +204,22 @@ export default function StoryPage() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 pt-16 pb-4 max-w-2xl mx-auto px-4">
-        <div className="page-content-container" ref={pageContentRef}>
+      <div className="flex grow flex-col pt-16 pb-4 max-w-2xl mx-auto px-4 items-center max-h-full">
+        {/* Turn Indicator */}
+        <TurnIndicator
+          isUserTurn={state.isUserTurn}
+          isGenerating={state.isGeneratingText || state.isGeneratingImage}
+        />
+
+
+        <div className="flex-1 grow overflow-y-scroll pb-30" ref={pageContentRef}>
           {/* Story Opening */}
-          {state.openingText && managedPages.length === 0 && (
+          {state.openingText && isOnOpeningPage && (
             <StoryOpening
-              title={state.starterTitle || 'Your Story'}
+              title={state.starterTitle}
               openingText={state.openingText}
               imageUrl={state.openingImage}
-              isAnimating={false}
+              isAnimating={true}
             />
           )}
 
@@ -226,31 +228,17 @@ export default function StoryPage() {
             <div>
               {/* Image with loading state */}
               {state.isGeneratingImage && isOnLatestPage ? (
-                <ImageSkeleton />
-              ) : currentPage.imageUrl ? (
+                <div>
+                  <PageContent
+                    page={currentPage}
+                  // isAnimating={isOnLatestPage && (state.isGeneratingText || state.isGeneratingImage)}
+                  />
+                </div>
+              ) : (
                 <PageContent
                   page={currentPage}
-                  isAnimating={isOnLatestPage && (state.isGeneratingText || state.isGeneratingImage)}
+                // isAnimating={isOnLatestPage && (state.isGeneratingText || state.isGeneratingImage)}
                 />
-              ) : (
-                <div className="w-full max-w-2xl mx-auto px-4">
-                  <div className="space-y-4">
-                    {currentPage.userText && (
-                      <div className="text-lg leading-relaxed">
-                        <p className="font-bold text-gray-800">
-                          {currentPage.userText}
-                        </p>
-                      </div>
-                    )}
-                    {currentPage.aiText && (
-                      <div className="text-lg leading-relaxed">
-                        <p className="text-gray-700">
-                          {currentPage.aiText}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
               )}
             </div>
           )}
@@ -263,10 +251,14 @@ export default function StoryPage() {
             />
           )}
         </div>
-      </div>
 
-      {/* Input Prompt */}
-      <InputPrompt isVisible={showInputPrompt} />
+        {/* Input Prompt */}
+        {showInputPrompt && (
+          <p className='py-6 font-semibold text-gray-800'>
+            What happens next?
+          </p>
+        )}
+      </div>
 
       {/* Input Field */}
       <StoryInput
@@ -275,31 +267,6 @@ export default function StoryPage() {
         onSubmit={handleSubmit}
         disabled={isInputDisabled}
       />
-
-      <style jsx>{`
-        .page-content-container {
-          height: calc(100vh - 200px);
-          overflow-y: auto;
-          scroll-behavior: smooth;
-        }
-
-        .page-content-container::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .page-content-container::-webkit-scrollbar-track {
-          background: #f1f1f1;
-        }
-
-        .page-content-container::-webkit-scrollbar-thumb {
-          background: #888;
-          border-radius: 3px;
-        }
-
-        .page-content-container::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-      `}</style>
     </div>
   );
 }

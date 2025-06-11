@@ -29,3 +29,20 @@ Continue the story naturally.
 user_prompt_template = """
 {story}
 """
+
+opening_prompt_template = """
+Create a story opening for a child between the ages of 5 and 10.
+Use the theme "{category}". Start the story now.
+"""
+
+
+image_prompt_template = """
+{description}
+style:
+- 3D illustration in the style of pixar.
+- soft lighting
+- claymation
+- imaginative and colourful.
+- close-up
+- child-friendly
+"""

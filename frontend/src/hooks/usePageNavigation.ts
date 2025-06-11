@@ -9,7 +9,8 @@ interface UsePageNavigationProps {
 }
 
 export const usePageNavigation = ({ pages, maxPages = 100 }: UsePageNavigationProps) => {
-    const [currentPageIndex, setCurrentPageIndex] = useState(0);
+    // currentPageIndex: -1 = opening page, 0+ = regular pages
+    const [currentPageIndex, setCurrentPageIndex] = useState(-1);
 
     // Auto-navigate to latest page when new pages are added
     useEffect(() => {
@@ -20,21 +21,22 @@ export const usePageNavigation = ({ pages, maxPages = 100 }: UsePageNavigationPr
 
     const navigatePage = useCallback((direction: 'prev' | 'next') => {
         const newIndex = direction === 'prev'
-            ? Math.max(0, currentPageIndex - 1)
+            ? Math.max(-1, currentPageIndex - 1)  // Allow going back to opening (-1)
             : Math.min(pages.length - 1, currentPageIndex + 1);
 
         setCurrentPageIndex(newIndex);
     }, [currentPageIndex, pages.length]);
 
     const navigateToPage = useCallback((index: number) => {
-        const clampedIndex = Math.max(0, Math.min(pages.length - 1, index));
+        const clampedIndex = Math.max(-1, Math.min(pages.length - 1, index));
         setCurrentPageIndex(clampedIndex);
     }, [pages.length]);
 
-    const canGoBack = currentPageIndex > 0;
+    const canGoBack = currentPageIndex > -1;  // Can go back if not on opening page
     const canGoForward = currentPageIndex < pages.length - 1;
-    const currentPage = pages[currentPageIndex] || null;
+    const currentPage = currentPageIndex >= 0 ? pages[currentPageIndex] || null : null;
     const isOnLatestPage = pages.length === 0 || currentPageIndex === pages.length - 1;
+    const isOnOpeningPage = currentPageIndex === -1;
 
     // Memory management - limit stored pages
     const managedPages = pages.length > maxPages
@@ -47,6 +49,7 @@ export const usePageNavigation = ({ pages, maxPages = 100 }: UsePageNavigationPr
         canGoBack,
         canGoForward,
         isOnLatestPage,
+        isOnOpeningPage,
         navigatePage,
         navigateToPage,
         pages: managedPages

@@ -98,28 +98,41 @@ export const useStoryAPI = () => {
     };
   }, []);
 
-  const generateImage = useCallback(async (pageContent: string, turnNumber: number) => {
-    const response = await fetch('http://localhost:8000/generate-image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        page_content: pageContent,
-        turn_number: turnNumber,
-        style_hints: "child-friendly illustration"
-      }),
-    });
+  const generateImage = useCallback(async (prompt: string, storyId: string, pageId: string) => {
+    try {
+      const response = await fetch('http://localhost:8000/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          story_id: storyId,
+          page_id: pageId,
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to generate image');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to generate image');
+      }
+
+      const data = await response.json();
+
+      if (!data.image_b64) {
+        throw new Error('No image data received from server');
+      }
+
+      // Convert base64 to data URL
+      const imageUrl = `data:image/png;base64,${data.image_b64}`;
+
+      return {
+        imageUrl: imageUrl
+      };
+    } catch (error) {
+      console.error('Image generation error:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return {
-      imageUrl: data.image_url,
-      generationTime: data.generation_time
-    };
   }, []);
 
   return { submitStory, retryLastRequest, generateOpening, generateImage };

@@ -1,7 +1,6 @@
+import base64
 import os
 import json
-import asyncio
-import time
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -11,7 +10,7 @@ from openai import OpenAI
 from pydantic import BaseModel
 
 
-from prompts import system_prompt, user_prompt_template
+from prompts import system_prompt, user_prompt_template, image_prompt_template
 
 # Load environment variables
 load_dotenv()
@@ -31,14 +30,13 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 class ImageRequest(BaseModel):
-    page_content: str
-    turn_number: int
-    style_hints: str = None
+    prompt: str
+    story_id: str
+    page_id: str
 
 
 class ImageResponse(BaseModel):
-    image_url: str
-    generation_time: float
+    image_b64: str
 
 
 class OpeningRequest(BaseModel):
@@ -56,40 +54,40 @@ class StoryRequest(BaseModel):
     story: str
 
 
-dummy_ai_responses = [
-    "She was best friends with a yellow dragon named Spark.",
-    "They were all happy together.",
-    "Suddenly, there was a big big cave in the middle of the forest.",
-]
-dummy_ai_responses_iter = iter(dummy_ai_responses)
+# dummy_ai_responses = [
+#     "She was best friends with a yellow dragon named Spark.",
+#     "They were all happy together.",
+#     "Suddenly, there was a big big cave in the middle of the forest.",
+# ]
+# dummy_ai_responses_iter = iter(dummy_ai_responses)
 
 
 @app.post("/generate-story")
 async def generate_story(request: StoryRequest):
-    global dummy_ai_responses_iter
-    next_response = next(dummy_ai_responses_iter, None)
-    if next_response is None:
-        dummy_ai_responses_iter = iter(dummy_ai_responses)
-        next_response = next(dummy_ai_responses_iter, None)
+    # global dummy_ai_responses_iter
+    # next_response = next(dummy_ai_responses_iter, None)
+    # if next_response is None:
+    #     dummy_ai_responses_iter = iter(dummy_ai_responses)
+    #     next_response = next(dummy_ai_responses_iter, None)
     try:
         # Construct the prompt
         user_prompt = user_prompt_template.format(story=request.story.strip())
 
         # Create OpenAI streaming response
-        # stream = client.responses.create(
-        #     model="gpt-4o-mini",
-        #     instructions=system_prompt,
-        #     input=user_prompt,
-        #     stream=True,
-        #     max_output_tokens=150,
-        #     temperature=0.8,
-        # )
+        stream = client.responses.create(
+            model="gpt-4o-mini",
+            instructions=system_prompt,
+            input=user_prompt,
+            stream=True,
+            max_output_tokens=150,
+            temperature=0.8,
+        )
 
         def generate():
-            for event in next_response:
-                # if event.type == "response.output_text.delta":
-                #     content = event.delta
-                yield f"data: {json.dumps({'content': event})}\n\n"
+            for event in stream:
+                if event.type == "response.output_text.delta":
+                    content = event.delta
+                    yield f"data: {json.dumps({'content': content})}\n\n"
 
             yield f"data: {json.dumps({'done': True})}\n\n"
 
@@ -110,31 +108,44 @@ async def generate_story(request: StoryRequest):
 @app.post("/generate-image")
 async def generate_image(request: ImageRequest):
     try:
-        import time
 
         # For now, return a placeholder image URL since we don't have actual image generation
         # In production, this would call DALL-E or similar service
 
         # Create a simple prompt from the page content
-        prompt = f"Child-friendly illustration: {request.page_content[:100]}..."
+        image_format = "jpeg"
+        prompt = image_prompt_template.format(description=request.prompt.strip())
 
-        # Simulate image generation delay
-        await asyncio.sleep(1)
+        # Do not change image settings
+        result = client.images.generate(
+            model="gpt-image-1",
+            prompt=prompt,
+            output_format=image_format,
+            quality="low",
+            size="1536x1024",
+        )
+
+        image_base64 = result.data[0].b64_json
+        image_bytes = base64.b64decode(image_base64)
+        image_filename = f"{request.story_id}_{request.page_id}.{image_format}"
+        image_path = os.path.join("images", image_filename)
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+        with open(image_path, "wb") as image_file:
+            image_file.write(image_bytes)
 
         # Return a placeholder image URL (using scene images for now)
-        scene_images = [
-            "/scene_opening_adventure.svg",
-            "/scene_opening_space.svg",
-            "/scene_opening_fantasy.svg",
-            "/scene_opening_cooking.svg",
-            "/scene_opening_sports.svg",
-        ]
+        # scene_images = [
+        #     "/scene_opening_adventure.svg",
+        #     "/scene_opening_space.svg",
+        #     "/scene_opening_fantasy.svg",
+        #     "/scene_opening_cooking.svg",
+        #     "/scene_opening_sports.svg",
+        # ]
 
         # Use turn number to cycle through available images
-        image_index = (request.turn_number - 1) % len(scene_images)
-        image_url = scene_images[image_index]
-
-        return ImageResponse(image_url=image_url, generation_time=time.time())
+        # image_index = (request.turn_number - 1) % len(scene_images)
+        # image_url = scene_images[image_index]
+        return ImageResponse(image_b64=image_base64)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -142,6 +153,40 @@ async def generate_image(request: ImageRequest):
 
 @app.post("/generate-opening")
 async def generate_opening(request: OpeningRequest):
+    # try:
+    # # Construct the prompt
+    #     user_prompt = user_prompt_template.format(story=request.story.strip())
+
+    #     # Create OpenAI streaming response
+    #     stream = client.responses.create(
+    #         model="gpt-4o-mini",
+    #         instructions=system_prompt,
+    #         input=user_prompt,
+    #         stream=True,
+    #         max_output_tokens=150,
+    #         temperature=0.8,
+    #     )
+
+    #     def generate():
+    #         for event in stream:
+    #             if event.type == "response.output_text.delta":
+    #                 content = event.delta
+    #                 yield f"data: {json.dumps({'content': content})}\n\n"
+
+    #         yield f"data: {json.dumps({'done': True})}\n\n"
+
+    #     return StreamingResponse(
+    #         generate(),
+    #         media_type="text/plain",
+    #         headers={
+    #             "Cache-Control": "no-cache",
+    #             "Connection": "keep-alive",
+    #             "Content-Type": "text/event-stream",
+    #         },
+    #     )
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
+
     try:
         # Predefined openings based on category
         openings = {
