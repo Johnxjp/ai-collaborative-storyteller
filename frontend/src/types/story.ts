@@ -27,6 +27,8 @@ export interface StoryPageState {
     isGeneratingImage: boolean;
     errorMessage: string | null;
     isUserTurn: boolean;
+    currentPageText: string;
+    currentPageImage: string | null;
 }
 
 export interface OpeningResponse {

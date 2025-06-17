@@ -38,7 +38,9 @@ export default function StoryPage() {
     isGeneratingText: false,
     isGeneratingImage: false,
     errorMessage: null,
-    isUserTurn: true
+    isUserTurn: true,
+    currentPageText: '',
+    currentPageImage: null
   });
   const [hasSeenOpening, setHasSeenOpening] = useState(false);
   const { submitStory, generateOpening, generateImage, fetchOpeningPrompt } = useStoryAPI();
@@ -59,12 +61,43 @@ export default function StoryPage() {
   const [hasSentFinalMessage, setHasSentFinalMessage] = useState(false);
   const [conversationHasEnded, setConversationHasEnded] = useState(false);
 
+  const extractTags = (message: string) => {
+    // Extract the story text from the AI message
+    const storyStartTag = '<story>';
+    const storyEndTag = '</story>';
+    const promptStartTag = '<prompt>';
+    const promptEndTag = '</prompt>';
+    const storyStartIndex = message.indexOf(storyStartTag);
+    const storyEndIndex = message.indexOf(storyEndTag);
+    const promptStartIndex = message.indexOf(promptStartTag);
+    const promptEndIndex = message.indexOf(promptEndTag);
+    const promptText = promptStartIndex !== -1 && promptEndIndex !== -1
+      ? message.substring(promptStartIndex + promptStartTag.length, promptEndIndex).trim()
+      : 'What happens next?';
+
+    let storyText = '';
+    if (storyStartIndex !== -1 && storyEndIndex !== -1) {
+      // Extract story text between <story> tags
+      storyText = message.substring(storyStartIndex + storyStartTag.length, storyEndIndex).trim();
+    } else if (promptStartIndex !== -1) {
+      storyText = message.substring(0, promptStartIndex).trim();
+    } else {
+      // If no <story> or <prompt> tags, use the entire message as story text
+      storyText = message.trim();
+    }
+
+    return {
+      story: storyText,
+      prompt: promptText
+    };
+  };
+
   const conversation = useConversation({
     onConnect: () => {
       console.log('Connected');
     },
     onDisconnect: () => console.log('Disconnected'),
-    onMessage: (message) => {
+    onMessage: async (message) => {
       console.log('Message:', message);
       setNarrativeTurnCount(prev => {
         const newCount = message.source === "user" ? prev : prev + 1;
@@ -72,27 +105,21 @@ export default function StoryPage() {
         return newCount;
       });
 
+      // Image generation and story text extraction
+      if (message.source === "ai") {
+        const { story, prompt } = extractTags(message.message);
+        setState(prev => ({ ...prev, currentPageText: story, currentInput: prompt }));
+
+        const image = await generateImage("", state.starterId || 'story', currentPage?.id || uuidv4());
+        setState(prev => ({ ...prev, currentPageImage: image.imageUrl }));
+      }
+
       if (message.source === "ai" && message.message.includes("<end>")) {
         console.log('Ending conversation due to <end> tag');
         setConversationHasEnded(true);
       }
     }
   });
-
-  // Fetching opening image
-  const fetchOpening = async () => {
-    if (!state.openingText || !state.openingImage) return;
-
-    try {
-      const response = await fetch(state.openingImage);
-      if (!response.ok) throw new Error('Failed to fetch opening image');
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    } catch (error) {
-      console.error('Error fetching opening image:', error);
-      return null;
-    }
-  };
 
   useEffect(() => {
     const startConversation = async () => {
@@ -124,7 +151,7 @@ export default function StoryPage() {
   // Trigger end
   useEffect(() => {
     if (narrativeTurnCount >= maxTurns - 4 && !hasSentFinalMessage) {
-      console.log("Sendt trigger to end conversation");
+      console.log("Send trigger to end conversation");
       conversation.sendContextualUpdate("<instruction>generate ending and end call</instruction>");
       setHasSentFinalMessage(true);
     }
@@ -295,7 +322,6 @@ export default function StoryPage() {
 
   return (
     <div className="h-screen flex flex-col relative">
-      <p>{`Turn ${narrativeTurnCount}`}</p>
       {/* Navigation Arrows */}
       <NavigationArrows
         canGoBack={canGoBack}
@@ -307,10 +333,10 @@ export default function StoryPage() {
       <div className="flex-1 overflow-hidden">
         <div className="flex flex-col h-full pt-16 pb-4 max-w-2xl mx-auto px-4 items-center">
           {/* Turn Indicator */}
-          <TurnIndicator
+          {/* <TurnIndicator
             isUserTurn={state.isUserTurn}
             isGenerating={state.isGeneratingText || state.isGeneratingImage}
-          />
+          /> */}
 
           {/* Scrollable Content */}
           <div className="flex-1 w-full overflow-y-auto pb-4" ref={pageContentRef}>
@@ -318,8 +344,8 @@ export default function StoryPage() {
             {state.openingText && isOnOpeningPage && (
               <StoryOpening
                 title={state.starterTitle}
-                openingText={state.openingText}
-                imageUrl={state.openingImage}
+                openingText={state.currentPageText}
+                imageUrl={state.currentPageImage || undefined}
                 isAnimating={!hasSeenOpening}
               />
             )}
@@ -350,10 +376,10 @@ export default function StoryPage() {
           </div>
 
           {/* Input Prompt - Fixed above input */}
-          {showInputPrompt && (
+          {!conversation.isSpeaking && state.currentInput && (
             <div className="w-full text-center py-4">
               <p className="font-semibold text-gray-800">
-                What happens next?
+                {state.currentInput}
               </p>
             </div>
           )}
@@ -361,14 +387,14 @@ export default function StoryPage() {
       </div>
 
       {/* Input Field - Fixed at bottom */}
-      <div className="flex-none">
+      {/* <div className="flex-none">
         <StoryInput
           value={state.currentInput}
           onChange={handleInputChange}
           onSubmit={handleSubmit}
           disabled={isInputDisabled}
         />
-      </div>
+      </div> */}
     </div>
   );
 }

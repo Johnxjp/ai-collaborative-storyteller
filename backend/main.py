@@ -113,25 +113,30 @@ async def generate_image(request: ImageRequest):
         # In production, this would call DALL-E or similar service
 
         # Create a simple prompt from the page content
-        image_format = "jpeg"
-        prompt = image_prompt_template.format(description=request.prompt.strip())
+        # image_format = "jpeg"
+        # prompt = image_prompt_template.format(description=request.prompt.strip())
 
         # Do not change image settings
-        result = client.images.generate(
-            model="gpt-image-1",
-            prompt=prompt,
-            output_format=image_format,
-            quality="low",
-            size="1536x1024",
-        )
+        # result = client.images.generate(
+        #     model="gpt-image-1",
+        #     prompt=prompt,
+        #     output_format=image_format,
+        #     quality="low",
+        #     size="1536x1024",
+        # )
 
-        image_base64 = result.data[0].b64_json
-        image_bytes = base64.b64decode(image_base64)
-        image_filename = f"{request.story_id}_{request.page_id}.{image_format}"
-        image_path = os.path.join("images", image_filename)
-        os.makedirs(os.path.dirname(image_path), exist_ok=True)
-        with open(image_path, "wb") as image_file:
-            image_file.write(image_bytes)
+        # image_base64 = result.data[0].b64_json
+        # image_bytes = base64.b64decode(image_base64)
+        # image_filename = f"{request.story_id}_{request.page_id}.{image_format}"
+        # image_path = os.path.join("images", image_filename)
+        # os.makedirs(os.path.dirname(image_path), exist_ok=True)
+        # with open(image_path, "wb") as image_file:
+        #     image_file.write(image_bytes)
+
+        with open("images/rocket_53c6e543-0f09-4050-ad2d-fd234bdf9f65.jpeg", "rb") as image_file:
+            image_bytes = image_file.read()
+        
+        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
 
         # Return a placeholder image URL (using scene images for now)
         # scene_images = [
