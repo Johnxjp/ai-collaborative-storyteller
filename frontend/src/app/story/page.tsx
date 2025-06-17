@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import TurnIndicator from '@/components/TurnIndicator';
@@ -15,6 +15,7 @@ import { useStoryAPI } from '@/hooks/useStoryAPI';
 import { usePageNavigation } from '@/hooks/usePageNavigation';
 import { StoryPageState, Page } from '@/types/story';
 import { storyStarters } from '@/data/storyStarters';
+import { useConversation } from '@elevenlabs/react';
 
 export default function StoryPage() {
   const searchParams = useSearchParams();
@@ -36,9 +37,80 @@ export default function StoryPage() {
     isUserTurn: true
   });
 
+  // One turn is one user input + one AI response.
+  // After the opening, the first user input is turn 1.
+  const [narrativeTurnCount, setNarrativeTurnCount] = useState(0);
+  const maxTurns = 7; // Maximum turns before stopping conversation
+  const [hasSentFinalMessage, setHasSentFinalMessage] = useState(false);
+  const [conversationHasEnded, setConversationHasEnded] = useState(false);
+
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log('Connected');
+    },
+    onDisconnect: () => console.log('Disconnected'),
+    onMessage: (message) => {
+      console.log('Message:', message);
+      setNarrativeTurnCount(prev => {
+        const newCount = message.source === "user" ? prev : prev + 1;
+        console.log(`${message.source} message, count:`, newCount);
+        return newCount;
+      });
+
+      if (message.source === "ai" && message.message.includes("<end>")) {
+        console.log('Ending conversation due to <end> tag');
+        setConversationHasEnded(true);
+      }
+    }
+  });
+
+  useEffect(() => {
+    const startConversation = async () => {
+      try {
+        // Request microphone permission and store the stream
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        await conversation.startSession({
+          agentId: process.env.NEXT_PUBLIC_ELEVENLABS_CONVERSATION_AGENT_ID!,
+        });
+
+        conversation.sendUserMessage(
+          "Welcome the user to the story heartily. They then said slowly something like --- " +
+          "In a galaxy far, far away, there lived a young child who dreamed of adventure." +
+          "Then simply prompt the user to imagine the next part of the story."
+        );
+
+      } catch (error) {
+        console.error('Failed to start conversation:', error);
+      }
+    };
+
+    startConversation();
+  }, []);
+
+
+  // Trigger end
+  useEffect(() => {
+    if (narrativeTurnCount >= maxTurns - 4 && !hasSentFinalMessage) {
+      console.log("Sendt trigger to end conversation");
+      conversation.sendContextualUpdate("<instruction>generate ending and end call</instruction>");
+      setHasSentFinalMessage(true);
+    }
+  }, [narrativeTurnCount, maxTurns, hasSentFinalMessage, conversation]);
+
+
+  useEffect(() => {
+    const stopConversation = async () => {
+      await conversation.endSession();
+    }
+    if (!conversation.isSpeaking && (narrativeTurnCount >= maxTurns || conversationHasEnded)) {
+      console.log("Agent stopped speaking after story ended, disconnecting...");
+      stopConversation();
+    }
+  }, [conversation, narrativeTurnCount, maxTurns, conversationHasEnded]);
+
   // Track if opening has been shown to animate only on first view
   const [hasSeenOpening, setHasSeenOpening] = useState(false);
-
   const { submitStory, generateOpening, generateImage } = useStoryAPI();
   const {
     currentPageIndex,
@@ -204,6 +276,7 @@ export default function StoryPage() {
 
   return (
     <div className="h-screen flex flex-col relative">
+      <p>{`Turn ${narrativeTurnCount}`}</p>
       {/* Navigation Arrows */}
       <NavigationArrows
         canGoBack={canGoBack}

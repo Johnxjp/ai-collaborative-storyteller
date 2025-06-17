@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@elevenlabs/react": "^0.1.7",
     "@types/uuid": "^10.0.0",
     "next": "15.3.3",
     "react": "^19.0.0",
