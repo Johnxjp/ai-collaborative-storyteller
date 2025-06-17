@@ -135,5 +135,18 @@ export const useStoryAPI = () => {
     }
   }, []);
 
-  return { submitStory, retryLastRequest, generateOpening, generateImage };
+  const fetchOpeningPrompt = useCallback(async (category: string) => {
+    console.log('Fetching opening prompt for category:', category);
+    const response = await fetch(`http://localhost:8000/opening-prompt?category=${encodeURIComponent(category)}`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch opening prompt');
+    }
+
+    const data = await response.json();
+    console.log('Opening prompt data:', data);
+    return data.prompt;
+  }, []);
+
+  return { submitStory, retryLastRequest, generateOpening, generateImage, fetchOpeningPrompt };
 };

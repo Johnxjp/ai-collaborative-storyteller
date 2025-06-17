@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, use } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import TurnIndicator from '@/components/TurnIndicator';
@@ -22,6 +22,10 @@ export default function StoryPage() {
   const starterId = searchParams.get('starter');
   const pageContentRef = useRef<HTMLDivElement>(null);
 
+  // Chance this doesn't exist
+  const starter = storyStarters.find(s => s.id === starterId);
+  const category = starter ? starter.category : 'adventure';
+  // Track if opening has been shown to animate only on first view
   const [state, setState] = useState<StoryPageState>({
     starterId: starterId || '',
     starterTitle: '',
@@ -36,6 +40,17 @@ export default function StoryPage() {
     errorMessage: null,
     isUserTurn: true
   });
+  const [hasSeenOpening, setHasSeenOpening] = useState(false);
+  const { submitStory, generateOpening, generateImage, fetchOpeningPrompt } = useStoryAPI();
+  const {
+    currentPageIndex,
+    currentPage,
+    canGoBack,
+    canGoForward,
+    isOnLatestPage,
+    isOnOpeningPage,
+    navigatePage
+  } = usePageNavigation({ pages: state.pages });
 
   // One turn is one user input + one AI response.
   // After the opening, the first user input is turn 1.
@@ -64,6 +79,21 @@ export default function StoryPage() {
     }
   });
 
+  // Fetching opening image
+  const fetchOpening = async () => {
+    if (!state.openingText || !state.openingImage) return;
+
+    try {
+      const response = await fetch(state.openingImage);
+      if (!response.ok) throw new Error('Failed to fetch opening image');
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error('Error fetching opening image:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     const startConversation = async () => {
       try {
@@ -74,11 +104,13 @@ export default function StoryPage() {
           agentId: process.env.NEXT_PUBLIC_ELEVENLABS_CONVERSATION_AGENT_ID!,
         });
 
-        conversation.sendUserMessage(
-          "Welcome the user to the story heartily. They then said slowly something like --- " +
-          "In a galaxy far, far away, there lived a young child who dreamed of adventure." +
-          "Then simply prompt the user to imagine the next part of the story."
-        );
+        const openingPrompt = await fetchOpeningPrompt(category);
+        if (openingPrompt) {
+          // Send the opening prompt to the conversation
+          conversation.sendUserMessage(openingPrompt);
+        } else {
+          console.error('Failed to fetch opening prompt');
+        }
 
       } catch (error) {
         console.error('Failed to start conversation:', error);
@@ -108,19 +140,6 @@ export default function StoryPage() {
       stopConversation();
     }
   }, [conversation, narrativeTurnCount, maxTurns, conversationHasEnded]);
-
-  // Track if opening has been shown to animate only on first view
-  const [hasSeenOpening, setHasSeenOpening] = useState(false);
-  const { submitStory, generateOpening, generateImage } = useStoryAPI();
-  const {
-    currentPageIndex,
-    currentPage,
-    canGoBack,
-    canGoForward,
-    isOnLatestPage,
-    isOnOpeningPage,
-    navigatePage
-  } = usePageNavigation({ pages: state.pages });
 
   // Generate opening when component mounts with a starter
   useEffect(() => {

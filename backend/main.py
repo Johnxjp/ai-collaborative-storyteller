@@ -10,7 +10,7 @@ from openai import OpenAI
 from pydantic import BaseModel
 
 
-from prompts import system_prompt, user_prompt_template, image_prompt_template
+from prompts import system_prompt, user_prompt_template, image_prompt_template, opening_prompt_template
 
 # Load environment variables
 load_dotenv()
@@ -147,6 +147,18 @@ async def generate_image(request: ImageRequest):
         # image_url = scene_images[image_index]
         return ImageResponse(image_b64=image_base64)
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/opening-prompt")
+def get_opening_prompt(category: str):
+    """
+    Get the opening prompt for a specific category.
+    """
+    try:
+        opening_prompt = opening_prompt_template.format(category=category)
+        return {"prompt": opening_prompt}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
