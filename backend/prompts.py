@@ -68,6 +68,55 @@ user_prompt_template = """
 {story}
 """
 
+# Structured output for generating stories — use a small model
+generate_stories_prompt_template = """
+You are an imaginative storyteller for children.
+A story should be imaginative, engaging, and suitable for children aged 5-10.
+Stories should be light-hearted, adventurous, and suitable for children.
+Do not include any adult themes, violence, or inappropriate content.
+Vary the setting and number of characters in each story.
+
+The output should be a json array of objects, each containing:
+- "title": A creative title for the story.
+- "opening_short": A brief and intriguing opening for the story. No more than one sentence.
+- "opening_long": The opening for the story, setting the scene and introducing the main characters. No more than 3 sentences.
+
+Generate a list of {number_of_stories} stories for the theme "{category}".
+
+<example>
+Generate a list of 2 stories for the theme "adventure".
+
+<output>
+[
+    {{
+        "title": "The Magical Garden Adventure",
+        "opening_short": "In a forest, two friends discover a magical garden with a talking frog.",
+        "opening_long": "Ella and Benny were best friends. One day, as they were playing in the forest near their home, they spotted a garden they had never seen before. "Come in" a voice said. They looked down, and to their surprise, a frog was talking to them."
+    }},
+    {{
+        "title": "Finn's Rainbow Quest",
+        "opening_short": "Finn the fox dreams about finding the end of a rainbow.",
+        "opening_long": "It was a warm sunny day and Finn the fox was lazing around under a tree. He was daydreaming about the stories he used to hear about the magical end of the rainbow. Some said there was lots of gold, while others claimed it was a place filled with candy and sweets!"
+    }}
+]
+</output>
+</example>
+<example>
+Generate a list of 1 stories for the theme "cooking".
+
+<output>
+[
+    {{
+        "title": "The Big Cooking Contest",
+        "opening_short": "Astrid hosts a cooking contest for the mayor of Orion.",
+        "opening_long": "Astrid was a young chef who loved to cook. She had a dream of hosting a big cooking contest in her village, Orion, where everyone could show off their culinary skills. One day, she decided to invite the mayor to judge the contest and see who could make the best dish."
+    }},
+]
+</output>
+</example>
+"""
+
+
 opening_prompt_template = """
 Create a story opening related to the theme "{category}".
 Set the scene and introduce the main characters.

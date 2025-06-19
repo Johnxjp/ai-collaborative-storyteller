@@ -1,21 +1,28 @@
 import base64
 import os
 import json
+import traceback
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from openai import OpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError
 
 
-from prompts import system_prompt, user_prompt_template, image_prompt_template, opening_prompt_template
+from prompts import (
+    system_prompt,
+    user_prompt_template,
+    image_prompt_template,
+    opening_prompt_template,
+    generate_stories_prompt_template,
+)
 
 # Load environment variables
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(debug=True)
 
 # Configure CORS
 app.add_middleware(
@@ -41,68 +48,27 @@ class ImageResponse(BaseModel):
 
 class OpeningRequest(BaseModel):
     category: str
-    title: str
+    n: int = 3
 
 
-class OpeningResponse(BaseModel):
-    opening_text: str
-    image_prompt: str
-    title: str
+class StoryOpening(BaseModel):
+    title: str = Field(description="A short creative title for the story.")
+    opening_short: str = Field(
+        description="A brief and intriguing opening for the story. No more than one sentence."
+    )
+    opening_long: str = Field(
+        description="The opening for the story, setting the scene and introducing the main characters. No more than 3 sentences."
+    )
+
+
+class StoryOpeningResponse(BaseModel):
+    stories: list[StoryOpening] = Field(
+        description="A list of story openings generated based on the provided category."
+    )
 
 
 class StoryRequest(BaseModel):
     story: str
-
-
-# dummy_ai_responses = [
-#     "She was best friends with a yellow dragon named Spark.",
-#     "They were all happy together.",
-#     "Suddenly, there was a big big cave in the middle of the forest.",
-# ]
-# dummy_ai_responses_iter = iter(dummy_ai_responses)
-
-
-@app.post("/generate-story")
-async def generate_story(request: StoryRequest):
-    # global dummy_ai_responses_iter
-    # next_response = next(dummy_ai_responses_iter, None)
-    # if next_response is None:
-    #     dummy_ai_responses_iter = iter(dummy_ai_responses)
-    #     next_response = next(dummy_ai_responses_iter, None)
-    try:
-        # Construct the prompt
-        user_prompt = user_prompt_template.format(story=request.story.strip())
-
-        # Create OpenAI streaming response
-        stream = client.responses.create(
-            model="gpt-4o-mini",
-            instructions=system_prompt,
-            input=user_prompt,
-            stream=True,
-            max_output_tokens=150,
-            temperature=0.8,
-        )
-
-        def generate():
-            for event in stream:
-                if event.type == "response.output_text.delta":
-                    content = event.delta
-                    yield f"data: {json.dumps({'content': content})}\n\n"
-
-            yield f"data: {json.dumps({'done': True})}\n\n"
-
-        return StreamingResponse(
-            generate(),
-            media_type="text/plain",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "Content-Type": "text/event-stream",
-            },
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/generate-image")
@@ -135,21 +101,8 @@ async def generate_image(request: ImageRequest):
 
         with open("images/rocket_53c6e543-0f09-4050-ad2d-fd234bdf9f65.jpeg", "rb") as image_file:
             image_bytes = image_file.read()
-        
+
         image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-
-        # Return a placeholder image URL (using scene images for now)
-        # scene_images = [
-        #     "/scene_opening_adventure.svg",
-        #     "/scene_opening_space.svg",
-        #     "/scene_opening_fantasy.svg",
-        #     "/scene_opening_cooking.svg",
-        #     "/scene_opening_sports.svg",
-        # ]
-
-        # Use turn number to cycle through available images
-        # image_index = (request.turn_number - 1) % len(scene_images)
-        # image_url = scene_images[image_index]
         return ImageResponse(image_b64=image_base64)
 
     except Exception as e:
@@ -169,59 +122,42 @@ def get_opening_prompt(category: str):
 
 
 @app.post("/generate-opening")
-async def generate_opening(request: OpeningRequest):
-    # try:
-    # # Construct the prompt
-    #     user_prompt = user_prompt_template.format(story=request.story.strip())
-
-    #     # Create OpenAI streaming response
-    #     stream = client.responses.create(
-    #         model="gpt-4o-mini",
-    #         instructions=system_prompt,
-    #         input=user_prompt,
-    #         stream=True,
-    #         max_output_tokens=150,
-    #         temperature=0.8,
-    #     )
-
-    #     def generate():
-    #         for event in stream:
-    #             if event.type == "response.output_text.delta":
-    #                 content = event.delta
-    #                 yield f"data: {json.dumps({'content': content})}\n\n"
-
-    #         yield f"data: {json.dumps({'done': True})}\n\n"
-
-    #     return StreamingResponse(
-    #         generate(),
-    #         media_type="text/plain",
-    #         headers={
-    #             "Cache-Control": "no-cache",
-    #             "Connection": "keep-alive",
-    #             "Content-Type": "text/event-stream",
-    #         },
-    #     )
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=str(e))
-
+async def generate_opening(request: OpeningRequest) -> StoryOpeningResponse:
     try:
-        # Predefined openings based on category
-        openings = {
-            "adventure": "You stand at the edge of a mysterious island, waves crashing against ancient rocks. A weathered map in your hand points to an X marking the spot where countless treasures await. The salty air carries whispers of adventures past and the promise of riches beyond imagination.",
-            "space": "A little red and white rocket ship zoomed through the starry sky, carrying a brave little astronaut named Luna. She had packed her favorite teddy bear and some space snacks for the big adventure.",
-            "fantasy": "Stepping through the morning mist, you discover a magical marketplace where nothing is quite as it seems. Floating lanterns cast rainbow shadows, and the air shimmers with enchantment. A friendly wizard waves you over to their stall filled with glowing potions and mysterious artifacts.",
-            "cooking": "You put on your chef's hat and step into the most amazing kitchen you've ever seen! Pots and pans seem to move on their own, spices dance in the air, and a talking wooden spoon offers to be your sous chef. Today, you're going to create something truly magical.",
-            "sports": "The crowd roars as you step onto the field for the championship game. This is the moment you've trained for your entire life. The ball is at your feet, your teammates are counting on you, and victory is within reach. The whistle blows and the game begins!",
+        formatted_prompt = generate_stories_prompt_template.format(
+            number_of_stories=request.n,
+            category=request.category,
+        )
+        # response = client.responses.parse(
+        #     model="gpt-4o-mini",
+        #     input=[
+        #         {"role": "user", "content": formatted_prompt},
+        #     ],
+        #     text_format=StoryOpeningResponse,
+        # )
+
+        # result = response.output_parsed
+        result = {
+            "stories": [
+                {
+                    "title": "Luna's Starry Night Adventure",
+                    "opening_short": "One night, Luna's telescope reveals a hidden world of twinkling stars and friendly aliens.",
+                    "opening_long": "Luna was a curious girl with a bright blue telescope that watched the night sky. Every evening, she would gaze at the stars, dreaming about adventures in outer space. Little did she know that one special night, her telescope would unveil a magical portal to a galaxy filled with sparkling stars and playful aliens.",
+                },
+
+            ]
         }
 
-        opening_text = openings.get(request.category, "Your adventure begins now...")
-        image_prompt = f"A beautiful, child-friendly illustration of {request.title.lower()}"
+        print(result)
+        StoryOpeningResponse.model_validate(result)
+        return result
 
-        return OpeningResponse(
-            opening_text=opening_text, image_prompt=image_prompt, title=request.title
-        )
+    except ValidationError as e:
+        print(f"Error in generate_opening: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
     except Exception as e:
+        print(f"Error in generate_opening: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
