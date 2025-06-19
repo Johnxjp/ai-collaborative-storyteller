@@ -16,7 +16,7 @@ export interface StoryPageState {
     title: string;
     pages: Page[];
     currentPageNumber: number | null;
-    nextPartPrompt: string;
+    nextPartPrompt: string | null;
     isUserTurn: boolean;
 }
 

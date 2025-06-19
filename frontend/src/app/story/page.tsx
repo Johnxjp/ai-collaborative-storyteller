@@ -30,13 +30,13 @@ export default function StoryPage() {
     title: "",
     pages: [],
     currentPageNumber: null,
-    nextPartPrompt: '',
+    nextPartPrompt: null,
     isUserTurn: true
   });
 
   // conversation state
   const [narrativeTurnCount, setNarrativeTurnCount] = useState(0);
-  const maxTurns = 7; // Maximum turns before stopping conversation
+  const maxTurns = 4; // Maximum turns before stopping conversation
   const [hasSentFinalMessage, setHasSentFinalMessage] = useState(false);
   const [conversationHasEnded, setConversationHasEnded] = useState(false);
 
@@ -101,7 +101,7 @@ export default function StoryPage() {
   // Navigation logic
   const canGoBack = state.currentPageNumber !== null && state.currentPageNumber > 1;
   const canGoForward = state.currentPageNumber !== null && state.currentPageNumber < state.pages.length;
-  
+
   const navigatePage = (direction: 'prev' | 'next') => {
     if (state.pages.length === 0 || state.currentPageNumber === null) return;
 
@@ -193,7 +193,7 @@ export default function StoryPage() {
                       : page
                   )
                 }));
-                console.log(`Image loaded for page ${newPageId}`);
+              console.log(`Image loaded for page ${newPageId}`);
             })
             .catch(error => {
               console.error(`Failed to generate image for page ${newPageId}:`, error);
@@ -215,7 +215,7 @@ export default function StoryPage() {
 
   // Trigger end
   useEffect(() => {
-    if (narrativeTurnCount >= maxTurns - 4 && !hasSentFinalMessage) {
+    if (narrativeTurnCount >= maxTurns - 1 && !hasSentFinalMessage) {
       console.log("Send trigger to end conversation");
       conversation.sendContextualUpdate("<instruction>generate ending and end call</instruction>");
       setHasSentFinalMessage(true);
@@ -258,10 +258,10 @@ export default function StoryPage() {
               )}
             </div>
           </div>
-          {!conversation.isSpeaking && state.pages.length > 0 && (
+          {!conversation.isSpeaking && state.nextPartPrompt !== null && (
             <div className="w-full text-center py-4 mb-10 rounded-xl bg-blue-600 shadow-lg">
               <p className="font-semibold text-white">
-                {state.nextPartPrompt || "What happens next?"}
+                {state.nextPartPrompt}
               </p>
             </div>
           )}
