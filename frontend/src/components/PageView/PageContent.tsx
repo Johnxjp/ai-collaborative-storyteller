@@ -14,14 +14,9 @@ export default function PageContent({ page }: PageContentProps) {
             <div className="space-y-4 mb-6">
                 <div className="text-lg leading-relaxed">
                     <p>
-                        {page.userText && (
-                            <span className="font-bold text-gray-800">
-                                {page.userText}
-                            </span>
-                        )}
-                        {page.aiText && (
-                            <span className="text-gray-600">
-                                {' '}{page.aiText}
+                        {page.text && (
+                            <span className="text-gray-800">
+                                {page.text}
                             </span>
                         )}
                     </p>
@@ -33,7 +28,7 @@ export default function PageContent({ page }: PageContentProps) {
                 <div className="w-full aspect-[3/2]">
                     <Image
                         src={page.imageUrl}
-                        alt={`Story scene for turn ${page.turnNumber}`}
+                        alt={`Story scene for page ${page.pageIndex}`}
                         width={500}
                         height={333}
                         className="w-full h-full object-cover rounded-lg shadow-lg"
