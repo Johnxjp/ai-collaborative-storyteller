@@ -8,6 +8,7 @@ import NavigationArrows from '@/components/PageView/NavigationArrows';
 import { useStoryAPI } from '@/hooks/useStoryAPI';
 import { StoryPageState, Page } from '@/types/story';
 import { useConversation } from '@elevenlabs/react';
+import { generateFirstMessage } from '@/utils';
 
 export default function StoryPage() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function StoryPage() {
       // Request microphone permission and store the stream
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      const storyOpening = "Ready for story time? Let's begin. <story>" + data.opening_long + "</story> <prompt>What happens next?</prompt>";
+      const storyOpening = generateFirstMessage(data.opening_long, "What happens next?");
       await conversation.startSession({
         agentId: process.env.NEXT_PUBLIC_ELEVENLABS_CONVERSATION_AGENT_ID!,
         overrides: {
