@@ -32,7 +32,7 @@ export default function PageContent({ page }: PageContentProps) {
                         alt={`Story scene for page ${page.id}`}
                         width={500}
                         height={333}
-                        className="w-full h-full object-cover rounded-lg shadow-lg"
+                        className="w-full h-full object-cover rounded-4xl shadow-lg"
                     />
                 </div>
             )}

@@ -290,7 +290,7 @@ export default function StoryPage() {
             </div>
           )}
           {!conversation.isSpeaking && storyIsActive &&
-            <button className='w-full text-center mb-4 bg-red-100 rounded-lg p-2 cursor-pointer hover:bg-red-200 transition-colors' onClick={() => triggerEndConversation()}>Bring Story to Close</button>
+            <button className='w-full text-center mb-4 bg-red-100 rounded-lg p-2 cursor-pointer hover:bg-red-200 transition-colors' onClick={() => triggerEndConversation()}>End Storytime</button>
           }
         </div>
       </div>
