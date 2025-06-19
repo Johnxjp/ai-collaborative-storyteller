@@ -33,6 +33,7 @@ export default function StoryPage() {
   const maxTurns = 4; // Maximum turns before stopping conversation
   const [hasSentFinalMessage, setHasSentFinalMessage] = useState(false);
   const [storyIsActive, setStoryIsActive] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   // Update state when pageInputData is loaded from sessionStorage
   useEffect(() => {
@@ -176,7 +177,7 @@ export default function StoryPage() {
               currentPageNumber: newPageNumber
             };
           });
-
+          setGeneratingImage(true);
           generateImage(story, uuidv4(), newPageId)
             .then(image => {
               // Update only the specific page by ID
@@ -192,6 +193,7 @@ export default function StoryPage() {
                       : page
                   )
                 }));
+                setGeneratingImage(false);
               console.log(`Image loaded for page ${newPageId}`);
             })
             .catch(error => {
@@ -259,6 +261,7 @@ export default function StoryPage() {
                 <div>
                   <PageContent
                     page={state.pages[state.currentPageNumber - 1]}
+                    displayImageSkeleton={generatingImage}
                   />
                 </div>
               )}

@@ -5,6 +5,7 @@ import { Page } from '@/types/story';
 
 interface PageContentProps {
     page: Page;
+    displayImageSkeleton: boolean;
 }
 
 export default function PageContent({ page }: PageContentProps) {
@@ -33,6 +34,11 @@ export default function PageContent({ page }: PageContentProps) {
                         height={333}
                         className="w-full h-full object-cover rounded-lg shadow-lg"
                     />
+                </div>
+            )}
+            {!page.imageUrl && (
+                <div className="w-full aspect-[3/2] bg-gray-200 animate-pulse rounded-lg mb-4 flex items-center justify-center">
+                    <p className="text-sm text-gray-200">Generating image...</p>
                 </div>
             )}
         </div>
