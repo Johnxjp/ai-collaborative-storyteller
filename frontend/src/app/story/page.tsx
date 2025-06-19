@@ -22,14 +22,55 @@ export default function StoryPage() {
   const starterId = searchParams.get('starter');
   const pageContentRef = useRef<HTMLDivElement>(null);
 
-  // Chance this doesn't exist
+  // Try to get story data from sessionStorage first, then fallback to URL params
+  const [storyData, setStoryData] = useState<{
+    title: string;
+    opening_short: string;
+    opening_long: string;
+    category: string;
+  } | null>(null);
+
+  const startConversation = async (data: { title: string; opening_short: string; opening_long: string; category: string }) => {
+    try {
+      // Request microphone permission and store the stream
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const storyOpening = "Ready for story time? Let's begin. <story>" + data.opening_long + "</story> <prompt>What happens next?</prompt>";
+      await conversation.startSession({
+        agentId: process.env.NEXT_PUBLIC_ELEVENLABS_CONVERSATION_AGENT_ID!,
+        overrides: {
+          agent: {
+            firstMessage: storyOpening
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+    }
+  };
+
+  useEffect(() => {
+    // Check sessionStorage for story preview data
+    const storedData = sessionStorage.getItem('storyPreview');
+    if (storedData) {
+      const data = JSON.parse(storedData);
+      setStoryData(data);
+      // Clear the data after using it
+      sessionStorage.removeItem('storyPreview');
+      
+      // Start conversation immediately after setting data
+      startConversation(data);
+    }
+  }, []);
+
+  // Fallback to existing starter logic if no sessionStorage data
   const starter = storyStarters.find(s => s.id === starterId);
-  const category = starter ? starter.category : 'adventure';
+  const category = storyData?.category || (starter ? starter.category : 'adventure');
   // Track if opening has been shown to animate only on first view
   const [state, setState] = useState<StoryPageState>({
     starterId: starterId || '',
-    starterTitle: '',
-    openingText: undefined,
+    starterTitle: storyData?.title || '',
+    openingText: storyData?.opening_long || undefined,
     openingImage: undefined,
     isGeneratingOpening: false,
     pages: [],
@@ -39,9 +80,21 @@ export default function StoryPage() {
     isGeneratingImage: false,
     errorMessage: null,
     isUserTurn: true,
-    currentPageText: '',
+    currentPageText: storyData?.opening_long || '',
     currentPageImage: null
   });
+
+  // Update state when storyData is loaded from sessionStorage
+  useEffect(() => {
+    if (storyData) {
+      setState(prev => ({
+        ...prev,
+        starterTitle: storyData.title,
+        openingText: storyData.opening_long,
+        currentPageText: storyData.opening_long
+      }));
+    }
+  }, [storyData]);
   const [hasSeenOpening, setHasSeenOpening] = useState(false);
   const { submitStory, generateOpening, generateImage, fetchOpeningPrompt } = useStoryAPI();
   const {
@@ -121,31 +174,6 @@ export default function StoryPage() {
     }
   });
 
-  useEffect(() => {
-    const startConversation = async () => {
-      try {
-        // Request microphone permission and store the stream
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        await conversation.startSession({
-          agentId: process.env.NEXT_PUBLIC_ELEVENLABS_CONVERSATION_AGENT_ID!,
-        });
-
-        const openingPrompt = await fetchOpeningPrompt(category);
-        if (openingPrompt) {
-          // Send the opening prompt to the conversation
-          conversation.sendUserMessage(openingPrompt);
-        } else {
-          console.error('Failed to fetch opening prompt');
-        }
-
-      } catch (error) {
-        console.error('Failed to start conversation:', error);
-      }
-    };
-
-    startConversation();
-  }, []);
 
 
   // Trigger end

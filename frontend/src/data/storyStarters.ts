@@ -9,7 +9,7 @@ export const storyStarters: StoryStarter[] = [
     },
     {
         id: 'rocket',
-        title: 'Trip To The Stars',
+        title: 'Space Adventure',
         imagePath: '/home/space.png',
         category: 'space'
     },
@@ -21,7 +21,7 @@ export const storyStarters: StoryStarter[] = [
     },
     {
         id: 'kitchen',
-        title: 'Kitchen Adventure',
+        title: 'Kitchen Madness',
         imagePath: '/home/kitchen.png',
         category: 'cooking'
     },
