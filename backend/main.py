@@ -89,8 +89,6 @@ async def generate_image(request: ImageRequest) -> ImageResponse:
 
         # For now, return a placeholder image URL since we don't have actual image generation
         # In production, this would call DALL-E or similar service
-
-        # Create a simple prompt from the page content
         # image_format = "jpeg"
         # image_prompt = image_prompt_template.format(description=request.scene_description.strip())
 

@@ -9,6 +9,8 @@ export interface Page {
     id: string;
     text: string;
     imageUrl: string | null;
+    isAnimating?: boolean;
+    displayedText?: string;
 }
 
 export interface StoryPageState {

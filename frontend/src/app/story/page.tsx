@@ -86,7 +86,7 @@ export default function StoryPage() {
       const data = JSON.parse(storedData);
       setPageInputData(data);
       // Clear the data after using it
-      sessionStorage.removeItem('storyPreview');
+      // sessionStorage.removeItem('storyPreview');
 
       // Start conversation immediately after setting data
       startAgentConversation(data);
@@ -169,7 +169,9 @@ export default function StoryPage() {
           const newPage: Page = {
             id: newPageId,
             text: story,
-            imageUrl: null // Image will be set after generation
+            imageUrl: null, // Image will be set after generation
+            isAnimating: true,
+            displayedText: ''
           };
           setState(prevState => {
             const newPageNumber = prevState.pages.length + 1;
@@ -180,6 +182,8 @@ export default function StoryPage() {
               currentPageNumber: newPageNumber
             };
           });
+
+          // Start image generation immediately in background
           setGeneratingImage(true);
           generateImage(story, uuidv4(), newPageId)
             .then(image => {
@@ -196,11 +200,12 @@ export default function StoryPage() {
                       : page
                   )
                 }));
-                setGeneratingImage(false);
+              setGeneratingImage(false);
               console.log(`Image loaded for page ${newPageId}`);
             })
             .catch(error => {
               console.error(`Failed to generate image for page ${newPageId}:`, error);
+              setGeneratingImage(false);
             });
         }
       }
@@ -252,6 +257,17 @@ export default function StoryPage() {
     router.push('/');
   };
 
+  const handleTextAnimationComplete = (pageId: string) => {
+    setState(prevState => ({
+      ...prevState,
+      pages: prevState.pages.map(page =>
+        page.id === pageId
+          ? { ...page, isAnimating: false }
+          : page
+      )
+    }));
+  };
+
   return (
     <div className="h-screen flex flex-col relative">
       {/* Home Button */}
@@ -261,7 +277,7 @@ export default function StoryPage() {
       >
         ← Home
       </button>
-      
+
       <NavigationArrows
         canGoBack={canGoBack}
         canGoForward={canGoForward}
@@ -277,13 +293,21 @@ export default function StoryPage() {
                   <PageContent
                     page={state.pages[state.currentPageNumber - 1]}
                     displayImageSkeleton={generatingImage}
+                    onTextAnimationComplete={() => {
+                      if (state.currentPageNumber !== null) {
+                        handleTextAnimationComplete(state.pages[state.currentPageNumber - 1].id);
+                      }
+                    }}
+                    initialDelay={1600}
+                    wordDelay={350}
+                    fadeDuration={700}
                   />
                 </div>
               )}
             </div>
           </div>
           {!conversation.isSpeaking && storyIsActive && (
-            <div className="w-full text-center py-4 mb-10 rounded-xl bg-blue-600 shadow-lg">
+            <div className="w-full text-center py-4 px-5 mb-10 rounded-xl bg-blue-600 shadow-lg">
               <p className="font-semibold text-white">
                 {state.nextPartPrompt}
               </p>

@@ -45,7 +45,7 @@ export const storyWelcomeText = [
     "Story bells are ringing! Come close and let's see where our tale takes us!",
     "Attention all dreamers and listeners! Our story is about to begin!",
     "Hello there! Let's paint pictures with words and have some fun!",
-    "Story time is here! Are you ready to jump in?",
+    "Story time is here! Are you ready to jump in to this adventure?",
     "Welcome, creative minds! Let's unlock the treasure chest of stories together!",
     "It's story o'clock! Who's ready to join me for something incredible?",
     "Story time joy is here! Let's make some memories and have a blast!",

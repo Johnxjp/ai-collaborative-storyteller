@@ -23,3 +23,12 @@ body {
 .new-text.fade-in {
   opacity: 1;
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
