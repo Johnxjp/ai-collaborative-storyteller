@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import PageContent from '@/components/PageView/PageContent';
 import NavigationArrows from '@/components/PageView/NavigationArrows';
@@ -9,6 +10,7 @@ import { StoryPageState, Page } from '@/types/story';
 import { useConversation } from '@elevenlabs/react';
 
 export default function StoryPage() {
+  const router = useRouter();
 
   // Fallback to existing starter logic if no sessionStorage data
   // Try to get story data from sessionStorage first, then fallback to URL params
@@ -245,8 +247,20 @@ export default function StoryPage() {
     navigatePage(direction);
   };
 
+  const handleGoHome = () => {
+    router.push('/');
+  };
+
   return (
     <div className="h-screen flex flex-col relative">
+      {/* Home Button */}
+      <button
+        onClick={handleGoHome}
+        className="absolute top-4 left-4 z-10 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700 font-medium transition-colors"
+      >
+        ← Home
+      </button>
+      
       <NavigationArrows
         canGoBack={canGoBack}
         canGoForward={canGoForward}
