@@ -106,7 +106,7 @@ export const useStoryAPI = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: prompt.trim(),
+          scene_description: prompt.trim(),
           story_id: storyId,
           page_id: pageId,
         }),

@@ -177,7 +177,7 @@ export default function StoryPage() {
             };
           });
 
-          generateImage("", 'story', newPageId)
+          generateImage(story, uuidv4(), newPageId)
             .then(image => {
               // Update only the specific page by ID
               setState(prevState => (

@@ -129,6 +129,8 @@ Welcome the child heartily and start the story.
 
 
 image_prompt_template = """
+Create an image prompt for an AI model using the description and style settings below. Pull out
+one key focus element from the description to use as the main subject of the image.
 {description}
 style:
 - 3D illustration in the style of pixar.
