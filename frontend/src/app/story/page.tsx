@@ -10,7 +10,6 @@ import NavigationArrows from '@/components/PageView/NavigationArrows';
 // import LoadingIndicator from '@/components/LoadingIndicator';
 // import ImageSkeleton from '@/components/ContentGeneration/ImageSkeleton';
 import { useStoryAPI } from '@/hooks/useStoryAPI';
-import { usePageNavigation } from '@/hooks/usePageNavigation';
 import { StoryPageState, Page } from '@/types/story';
 // import { storyStarters } from '@/data/storyStarters';
 import { useConversation } from '@elevenlabs/react';
@@ -30,7 +29,7 @@ export default function StoryPage() {
     category: "",
     title: "",
     pages: [],
-    currentPageIndex: 0,
+    currentPageNumber: null,
     nextPartPrompt: '',
     isUserTurn: true
   });
@@ -43,20 +42,21 @@ export default function StoryPage() {
 
   // Update state when pageInputData is loaded from sessionStorage
   useEffect(() => {
+    console.log('Page input data updated:', pageInputData);
     if (pageInputData) {
       console.log('Page input data loaded:', pageInputData);
-      const firstPage: Page = {
-        pageIndex: 0,
-        text: pageInputData.opening_long,
-        imageUrl: null
-      };
+
+      // Page created twice when the AI response with the opening
+      // const firstPage: Page = {
+      //   id: uuidv4(),
+      //   text: pageInputData.opening_long,
+      //   imageUrl: null
+      // };
 
       setState(prev => ({
         ...prev,
         category: pageInputData.category,
         title: pageInputData.title,
-        pages: [firstPage],
-        currentPageIndex: 0,
       }));
     }
   }, [pageInputData]);
@@ -91,19 +91,28 @@ export default function StoryPage() {
 
       // Start conversation immediately after setting data
       startAgentConversation(data);
+    } else {
+      console.log('No story data found in sessionStorage');
     }
   }, []);
 
   const { generateImage } = useStoryAPI();
-  const {
-    currentPageIndex,
-    currentPage,
-    canGoBack,
-    canGoForward,
-    // isOnLatestPage,
-    // isOnOpeningPage,
-    navigatePage
-  } = usePageNavigation({ pages: state.pages });
+
+  // Navigation logic
+  const canGoBack = state.currentPageNumber !== null && state.currentPageNumber > 1;
+  const canGoForward = state.currentPageNumber !== null && state.currentPageNumber < state.pages.length;
+  
+  const navigatePage = (direction: 'prev' | 'next') => {
+    if (state.pages.length === 0 || state.currentPageNumber === null) return;
+
+    setState(prev => {
+      const newPageNumber = direction === 'prev'
+        ? Math.max(1, prev.currentPageNumber! - 1)
+        : Math.min(prev.pages.length, prev.currentPageNumber! + 1);
+
+      return { ...prev, currentPageNumber: newPageNumber };
+    });
+  };
 
   const extractTags = (message: string) => {
     // Extract the story text from the AI message
@@ -127,7 +136,7 @@ export default function StoryPage() {
       storyText = message.substring(0, promptStartIndex).trim();
     } else {
       // If no <story> or <prompt> tags, use the entire message as story text
-      storyText = message.trim();
+      storyText = "";
     }
 
     return {
@@ -152,10 +161,44 @@ export default function StoryPage() {
       // Image generation and story text extraction
       if (message.source === "ai") {
         const { story, prompt } = extractTags(message.message);
-        setState(prev => ({ ...prev, currentPageText: story, nextPartPrompt: prompt }));
+        if (story.length > 0) {
+          const newPageId = uuidv4(); // Generate a unique ID for the new page
+          const newPage: Page = {
+            id: newPageId,
+            text: story,
+            imageUrl: null // Image will be set after generation
+          };
+          setState(prevState => {
+            const newPageNumber = prevState.pages.length + 1;
+            return {
+              ...prevState,
+              nextPartPrompt: prompt,
+              pages: [...prevState.pages, newPage],
+              currentPageNumber: newPageNumber
+            };
+          });
 
-        const image = await generateImage("", 'story', uuidv4());
-        setState(prev => ({ ...prev, currentPageImage: image.imageUrl }));
+          generateImage("", 'story', newPageId)
+            .then(image => {
+              // Update only the specific page by ID
+              setState(prevState => (
+                {
+                  ...prevState,
+                  pages: prevState.pages.map(page =>
+                    page.id === newPageId
+                      ? {
+                        ...page,
+                        imageUrl: image.imageUrl,
+                      }
+                      : page
+                  )
+                }));
+                console.log(`Image loaded for page ${newPageId}`);
+            })
+            .catch(error => {
+              console.error(`Failed to generate image for page ${newPageId}:`, error);
+            });
+        }
       }
 
       if (message.source === "ai" && message.message.includes("<end>")) {
@@ -164,6 +207,10 @@ export default function StoryPage() {
       }
     }
   });
+
+  useEffect(() => {
+    console.log("Pages", state.pages);
+  }, [state.pages]);
 
 
   // Trigger end
@@ -186,11 +233,6 @@ export default function StoryPage() {
     }
   }, [conversation, narrativeTurnCount, maxTurns, conversationHasEnded]);
 
-  // Update current page index when pages change
-  useEffect(() => {
-    setState(prev => ({ ...prev, currentPageIndex }));
-  }, [currentPageIndex]);
-
   const handleNavigation = (direction: 'prev' | 'next') => {
     navigatePage(direction);
   };
@@ -207,24 +249,24 @@ export default function StoryPage() {
           <div className="flex-1 w-full overflow-y-auto pb-4">
             <h1 className="text-center text-lg font-bold py-4 text-gray-800">{state.title}</h1>
             <div>
-              {currentPage && (
+              {(state.currentPageNumber !== null) && (
                 <div>
                   <PageContent
-                    page={state.pages[currentPageIndex]}
+                    page={state.pages[state.currentPageNumber - 1]}
                   />
                 </div>
               )}
             </div>
           </div>
-          {/* {!conversation.isSpeaking && state.nextPartPrompt && ( */}
+          {!conversation.isSpeaking && state.pages.length > 0 && (
             <div className="w-full text-center py-4 mb-10 rounded-xl bg-blue-600 shadow-lg">
               <p className="font-semibold text-white">
-                {"What happens next?"}
+                {state.nextPartPrompt || "What happens next?"}
               </p>
             </div>
-          {/* )} */}
+          )}
         </div>
       </div>
-    </div>
+    </div >
   );
 }

@@ -8,6 +8,7 @@ interface PageContentProps {
 }
 
 export default function PageContent({ page }: PageContentProps) {
+    console.log('Rendering PageContent for page:', page);
     return (
         <div className="w-full max-w-2xl mx-auto px-4 mt-10">
             {/* Text Content */}
@@ -28,7 +29,7 @@ export default function PageContent({ page }: PageContentProps) {
                 <div className="w-full aspect-[3/2]">
                     <Image
                         src={page.imageUrl}
-                        alt={`Story scene for page ${page.pageIndex}`}
+                        alt={`Story scene for page ${page.id}`}
                         width={500}
                         height={333}
                         className="w-full h-full object-cover rounded-lg shadow-lg"

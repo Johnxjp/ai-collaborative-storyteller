@@ -6,7 +6,7 @@ export interface StoryStarter {
 }
 
 export interface Page {
-    pageIndex: number;
+    id: string;
     text: string;
     imageUrl: string | null;
 }
@@ -15,7 +15,7 @@ export interface StoryPageState {
     category: string;
     title: string;
     pages: Page[];
-    currentPageIndex: number;
+    currentPageNumber: number | null;
     nextPartPrompt: string;
     isUserTurn: boolean;
 }
