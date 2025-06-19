@@ -1,17 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// import { useSearchParams } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import PageContent from '@/components/PageView/PageContent';
 import NavigationArrows from '@/components/PageView/NavigationArrows';
-// import ErrorMessage from '@/components/ErrorMessage';
-// import StoryOpening from '@/components/StoryOpening';
-// import LoadingIndicator from '@/components/LoadingIndicator';
-// import ImageSkeleton from '@/components/ContentGeneration/ImageSkeleton';
 import { useStoryAPI } from '@/hooks/useStoryAPI';
 import { StoryPageState, Page } from '@/types/story';
-// import { storyStarters } from '@/data/storyStarters';
 import { useConversation } from '@elevenlabs/react';
 
 export default function StoryPage() {
@@ -87,7 +81,7 @@ export default function StoryPage() {
       const data = JSON.parse(storedData);
       setPageInputData(data);
       // Clear the data after using it
-      // sessionStorage.removeItem('storyPreview');
+      sessionStorage.removeItem('storyPreview');
 
       // Start conversation immediately after setting data
       startAgentConversation(data);
@@ -208,9 +202,9 @@ export default function StoryPage() {
     }
   });
 
-  useEffect(() => {
-    console.log("Pages", state.pages);
-  }, [state.pages]);
+  // useEffect(() => {
+  //   console.log("Pages", state.pages);
+  // }, [state.pages]);
 
 
   // Trigger end
