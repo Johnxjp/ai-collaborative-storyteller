@@ -8,7 +8,6 @@ interface PageContentProps {
 }
 
 export default function PageContent({ page }: PageContentProps) {
-    console.log('Rendering PageContent for page:', page);
     return (
         <div className="w-full max-w-2xl mx-auto px-4 mt-10">
             {/* Text Content */}

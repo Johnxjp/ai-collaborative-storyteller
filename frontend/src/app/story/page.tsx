@@ -32,7 +32,7 @@ export default function StoryPage() {
   const [narrativeTurnCount, setNarrativeTurnCount] = useState(0);
   const maxTurns = 4; // Maximum turns before stopping conversation
   const [hasSentFinalMessage, setHasSentFinalMessage] = useState(false);
-  const [conversationHasEnded, setConversationHasEnded] = useState(false);
+  const [storyIsActive, setStoryIsActive] = useState(false);
 
   // Update state when pageInputData is loaded from sessionStorage
   useEffect(() => {
@@ -69,6 +69,7 @@ export default function StoryPage() {
           }
         }
       });
+      setStoryIsActive(true);
     } catch (error) {
       console.error('Failed to start conversation:', error);
     }
@@ -143,7 +144,10 @@ export default function StoryPage() {
     onConnect: () => {
       console.log('Connected');
     },
-    onDisconnect: () => console.log('Disconnected'),
+    onDisconnect: () => {
+      console.log('Disconnected')
+      setStoryIsActive(false);
+    },
     onMessage: async (message) => {
       console.log('Message:', message);
       setNarrativeTurnCount(prev => {
@@ -153,6 +157,7 @@ export default function StoryPage() {
       });
 
       // Image generation and story text extraction
+      console.log(message);
       if (message.source === "ai") {
         const { story, prompt } = extractTags(message.message);
         if (story.length > 0) {
@@ -197,17 +202,24 @@ export default function StoryPage() {
 
       if (message.source === "ai" && message.message.includes("<end>")) {
         console.log('Ending conversation due to <end> tag');
-        setConversationHasEnded(true);
+        setStoryIsActive(false);
       }
     }
   });
 
-  // useEffect(() => {
-  //   console.log("Pages", state.pages);
-  // }, [state.pages]);
+  useEffect(() => {
+    console.log(state);
+  }, [state]);
 
 
   // Trigger end
+  const triggerEndConversation = () => {
+    console.log("triggerEndConversation called!");
+    conversation.sendUserMessage("end story please.");
+    setHasSentFinalMessage(true);
+  }
+
+  // Trigger end silently
   useEffect(() => {
     if (narrativeTurnCount >= maxTurns - 1 && !hasSentFinalMessage) {
       console.log("Send trigger to end conversation");
@@ -221,11 +233,11 @@ export default function StoryPage() {
     const stopConversation = async () => {
       await conversation.endSession();
     }
-    if (!conversation.isSpeaking && (narrativeTurnCount >= maxTurns || conversationHasEnded)) {
+    if (!conversation.isSpeaking && !storyIsActive) {
       console.log("Agent stopped speaking after story ended, disconnecting...");
       stopConversation();
     }
-  }, [conversation, narrativeTurnCount, maxTurns, conversationHasEnded]);
+  }, [conversation, narrativeTurnCount, maxTurns, storyIsActive]);
 
   const handleNavigation = (direction: 'prev' | 'next') => {
     navigatePage(direction);
@@ -252,13 +264,16 @@ export default function StoryPage() {
               )}
             </div>
           </div>
-          {!conversation.isSpeaking && state.nextPartPrompt !== null && (
+          {!conversation.isSpeaking && storyIsActive && (
             <div className="w-full text-center py-4 mb-10 rounded-xl bg-blue-600 shadow-lg">
               <p className="font-semibold text-white">
                 {state.nextPartPrompt}
               </p>
             </div>
           )}
+          {!conversation.isSpeaking && storyIsActive &&
+            <button className='w-full text-center mb-4 bg-red-100 rounded-lg p-2 cursor-pointer hover:bg-red-200 transition-colors' onClick={() => triggerEndConversation()}>Bring Story to Close</button>
+          }
         </div>
       </div>
     </div >
