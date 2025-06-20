@@ -40,17 +40,7 @@ export default function StoryPage() {
 
   // Update state when pageInputData is loaded from sessionStorage
   useEffect(() => {
-    console.log('Page input data updated:', pageInputData);
     if (pageInputData) {
-      console.log('Page input data loaded:', pageInputData);
-
-      // Page created twice when the AI response with the opening
-      // const firstPage: Page = {
-      //   id: uuidv4(),
-      //   text: pageInputData.opening_long,
-      //   imageUrl: null
-      // };
-
       setState(prev => ({
         ...prev,
         category: pageInputData.category,
@@ -155,15 +145,12 @@ export default function StoryPage() {
       setStoryIsActive(false);
     },
     onMessage: async (message) => {
-      console.log('Message:', message);
       setNarrativeTurnCount(prev => {
         const newCount = message.source === "user" ? prev : prev + 1;
-        console.log(`${message.source} message, count:`, newCount);
         return newCount;
       });
 
       // Image generation and story text extraction
-      console.log(message);
       if (message.source === "ai") {
         const { story, prompt } = extractTags(message.message);
         if (story.length > 0) {
@@ -203,7 +190,6 @@ export default function StoryPage() {
                   )
                 }));
               setGeneratingImage(false);
-              console.log(`Image loaded for page ${newPageId}`);
             })
             .catch(error => {
               console.error(`Failed to generate image for page ${newPageId}:`, error);
@@ -213,15 +199,10 @@ export default function StoryPage() {
       }
 
       if (message.source === "ai" && message.message.includes("<end>")) {
-        console.log('Ending conversation due to <end> tag');
         setStoryIsActive(false);
       }
     }
   });
-
-  useEffect(() => {
-    console.log(state);
-  }, [state]);
 
 
   // Trigger end

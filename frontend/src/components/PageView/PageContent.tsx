@@ -22,7 +22,6 @@ export default function PageContent({
     fadeDuration = 400
 }: PageContentProps) {
     const showImage = !page.isAnimating && (page.imageUrl || displayImageSkeleton);
-    
     return (
         <div className="w-full max-w-2xl mx-auto px-4 mt-10">
             {/* Text Content */}

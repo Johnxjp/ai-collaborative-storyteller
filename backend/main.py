@@ -6,6 +6,7 @@ import traceback
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
 
@@ -40,7 +41,7 @@ class ImageRequest(BaseModel):
 
 
 class ImageResponse(BaseModel):
-    image_b64: str
+    image_url: str
 
 
 class OpeningRequest(BaseModel):
@@ -112,8 +113,9 @@ async def generate_image(request: ImageRequest) -> ImageResponse:
         # with open("images/rocket_53c6e543-0f09-4050-ad2d-fd234bdf9f65.jpeg", "rb") as image_file:
         #     image_bytes = image_file.read()
 
-        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-        return ImageResponse(image_b64=image_base64)
+        # Return URL to the saved image file instead of base64
+        image_url = f"/images/{image_filename}"
+        return ImageResponse(image_url=image_url)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -159,6 +161,15 @@ async def generate_opening(request: OpeningRequest) -> StoryOpeningResponse:
     except Exception as e:
         print(f"Error in generate_opening: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/images/{filename}")
+async def serve_image(filename: str):
+    """Serve generated images from the images directory"""
+    file_path = f"images/{filename}"
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(file_path, media_type="image/jpeg")
 
 
 @app.get("/health")

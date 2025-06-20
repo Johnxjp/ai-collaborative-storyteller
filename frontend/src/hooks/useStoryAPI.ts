@@ -121,12 +121,13 @@ export const useStoryAPI = () => {
 
       const data = await response.json();
 
-      if (!data.image_b64) {
-        throw new Error('No image data received from server');
+      if (!data.image_url) {
+        throw new Error('No image URL received from server');
       }
 
-      // Convert base64 to data URL
-      const imageUrl = `data:image/png;base64,${data.image_b64}`;
+      // Construct full image URL
+      const imageUrl = `${API_BASE_URL}${data.image_url}`;
+      console.log('🖼️ Generated image URL:', imageUrl);
 
       return {
         imageUrl: imageUrl
@@ -146,7 +147,6 @@ export const useStoryAPI = () => {
     }
 
     const data = await response.json();
-    console.log('Opening prompt data:', data);
     return data.prompt;
   }, []);
 
