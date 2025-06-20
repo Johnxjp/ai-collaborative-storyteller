@@ -63,8 +63,9 @@ export default function StoryPage() {
     try {
       // Request microphone permission and store the stream
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone permission granted');
 
-      const storyOpening = generateFirstMessage(data.opening_long, "What happens next?");
+      const storyOpening = generateFirstMessage(data.opening_long, "What happens next?");      
       await conversation.startSession({
         agentId: process.env.NEXT_PUBLIC_ELEVENLABS_CONVERSATION_AGENT_ID!,
         overrides: {
@@ -74,6 +75,7 @@ export default function StoryPage() {
         }
       });
       setStoryIsActive(true);
+      console.log('Session started successfully');
     } catch (error) {
       console.error('Failed to start conversation:', error);
     }
