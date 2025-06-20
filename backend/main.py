@@ -14,7 +14,6 @@ from data import STORY_OPENINGS
 from prompts import (
     image_prompt_template,
     opening_prompt_template,
-    generate_stories_prompt_template,
 )
 
 # Load environment variables
@@ -25,7 +24,7 @@ app = FastAPI(debug=True)
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Frontend origins
+    allow_origins=["http://localhost:3000"],  # Frontend origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -110,8 +109,8 @@ async def generate_image(request: ImageRequest) -> ImageResponse:
         with open(image_path, "wb") as image_file:
             image_file.write(image_bytes)
 
-        with open("images/rocket_53c6e543-0f09-4050-ad2d-fd234bdf9f65.jpeg", "rb") as image_file:
-            image_bytes = image_file.read()
+        # with open("images/rocket_53c6e543-0f09-4050-ad2d-fd234bdf9f65.jpeg", "rb") as image_file:
+        #     image_bytes = image_file.read()
 
         image_base64 = base64.b64encode(image_bytes).decode("utf-8")
         return ImageResponse(image_b64=image_base64)
