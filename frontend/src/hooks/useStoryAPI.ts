@@ -2,6 +2,8 @@
 
 import { useCallback, useRef } from 'react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
 export const useStoryAPI = () => {
   const lastRequestRef = useRef<{ story: string } | null>(null);
 
@@ -9,7 +11,7 @@ export const useStoryAPI = () => {
     // Store for potential retry
     lastRequestRef.current = { story: entireStory };
 
-    const response = await fetch('http://localhost:8000/generate-story', {
+    const response = await fetch(`${API_BASE_URL}/generate-story`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -75,7 +77,7 @@ export const useStoryAPI = () => {
   }, [submitStory]);
 
   const generateOpening = useCallback(async (category: string, title: string) => {
-    const response = await fetch('http://localhost:8000/generate-opening', {
+    const response = await fetch(`${API_BASE_URL}/generate-opening`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -100,7 +102,7 @@ export const useStoryAPI = () => {
 
   const generateImage = useCallback(async (prompt: string, storyId: string, pageId: string) => {
     try {
-      const response = await fetch('http://localhost:8000/generate-image', {
+      const response = await fetch(`${API_BASE_URL}/generate-image`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +139,7 @@ export const useStoryAPI = () => {
 
   const fetchOpeningPrompt = useCallback(async (category: string) => {
     console.log('Fetching opening prompt for category:', category);
-    const response = await fetch(`http://localhost:8000/opening-prompt?category=${encodeURIComponent(category)}`);
+    const response = await fetch(`${API_BASE_URL}/opening-prompt?category=${encodeURIComponent(category)}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch opening prompt');

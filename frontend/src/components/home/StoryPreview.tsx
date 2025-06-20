@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
 interface StoryPreviewData {
   title: string;
   opening_short: string;
@@ -28,7 +30,7 @@ export default function StoryPreview({ category, onBack, onStoryLoaded, storyPre
         setError(null);
         
         try {
-          const response = await fetch('http://localhost:8000/generate-opening', {
+          const response = await fetch(`${API_BASE_URL}/generate-opening`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
