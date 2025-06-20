@@ -93,7 +93,17 @@ The backend will be available at `http://localhost:8000`
    npm install
    ```
 
-3. Start the development server:
+3. Environment Variables
+
+   copy `.env` to a `.env.local` and set the environment variables. These can be obtained from 
+   your ElevenLabs account dashboard.
+
+   ```bash
+   NEXT_PUBLIC_ELEVENLABS_API_KEY=your_api_key_here
+   NEXT_PUBLIC_ELEVENLABS_CONVERSATION_AGENT_ID=your_agent_id_here
+   ```
+
+4. Start the development server:
    ```bash
    npm run dev
    ```
