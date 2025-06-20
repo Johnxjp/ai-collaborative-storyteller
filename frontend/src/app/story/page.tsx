@@ -298,7 +298,7 @@ export default function StoryPage() {
                         handleTextAnimationComplete(state.pages[state.currentPageNumber - 1].id);
                       }
                     }}
-                    initialDelay={1600}
+                    initialDelay={state.pages.length <= 1 ? 1600 : 500}
                     wordDelay={350}
                     fadeDuration={700}
                   />
