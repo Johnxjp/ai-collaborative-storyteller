@@ -1,6 +1,6 @@
 # Collaborative Audio Storytelling with AI [Demo]
 
-What if we brought AI into the creative process than just use AI to offload all our tasks? From that question came this idea to use AI to collaboratively build a story together. This is a voice-driven demo where users and an AI take turns to build a story. 
+What if we brought AI into the creative process rather than just use AI to offload all our tasks? From that question came this idea to use AI to collaboratively build a story together. This is a voice-driven demo where users and an AI take turns to build a story. 
 
 ![img](assets/giggling_aliens.png)
 
@@ -37,11 +37,11 @@ Initially turned to OpenAI for all AI features including real-time conversation 
 
 Some challenges I ran into when using ElevenLabs:
 
-1. **Triggering Conversation States**: No obvious way to trigger conversational states. Luckily this is a fairly linear flow but I ran into issues when trying to force the agent to end the call without the user explicitly asking. I managed this by keeping track of a narrative count and then sending a message via `sendContextualMessage` to the agent. I had to include additional instruction in the system prompt to look out for this but I'm entirely convinced this approach is very reliable. Sometimes it worked other times not.
+1. **Triggering Conversation States**: No obvious way to trigger conversational states. Luckily this is a fairly linear flow but I ran into issues when trying to force the agent to end the call without the user explicitly asking. I managed this by keeping track of a narrative count and then sending a message via `sendContextualMessage` to the agent. I had to include additional instruction in the system prompt to look out for this but I'm not entirely convinced this approach is very reliable. Sometimes it worked other times not.
 
 2. **Agent Patience**: A child isn't likely to respond with a new thought without pause. In most cases, they will take time to answer, start, stop and generally respond in an unpredictable way. These agents are quite sensitive to pauses and don't offer much space for thinking once they detect some initial speech and so often cut the user off. 
 
-   This could potentially managed on the interface side with a 'push-to-talk' feature but I wanted this to be a hands-off experience.
+   This could potentially be managed on the interface side with a 'push-to-talk' feature but I wanted this to be a hands-off experience.
 
    On the modelling side, perhaps something like semantic voice activity detection would be the way to go.
 
