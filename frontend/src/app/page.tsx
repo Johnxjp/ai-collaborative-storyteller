@@ -11,10 +11,13 @@ interface StoryPreviewData {
 }
 
 export default function Home() {
+  console.log('🏠 Home component loaded');
+  
   const [category, setCategory] = useState<string | null>(null);
   const [storyPreview, setStoryPreview] = useState<StoryPreviewData | null>(null);
 
   const handleCategorySelect = (category: string) => {
+    console.log('📂 Category selected:', category);
     setCategory(category);
   };
 
